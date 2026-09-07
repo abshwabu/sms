@@ -19,13 +19,25 @@
             </router-link>
 
             <!-- Nav Links -->
-            <nav class="hidden md:flex items-center gap-1 text-sm font-medium">
+            <nav class="hidden lg:flex items-center gap-1 text-sm font-medium">
               <router-link 
                 to="/" 
                 exact
                 class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
               >
                 Dashboard
+              </router-link>
+              <router-link 
+                to="/auth" 
+                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
+              >
+                Auth &amp; RBAC
+              </router-link>
+              <router-link 
+                to="/onboarding" 
+                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
+              >
+                Onboarding
               </router-link>
               <router-link 
                 to="/schools" 
@@ -37,7 +49,7 @@
                 to="/courses" 
                 class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
               >
-                Courses (Isolation Demo)
+                Courses (Isolation)
               </router-link>
               <router-link 
                 to="/health" 
@@ -48,12 +60,25 @@
             </nav>
           </div>
 
-          <!-- Active Tenant Dropdown -->
+          <!-- Active User & Tenant Dropdowns -->
           <div class="flex items-center gap-3">
-            <div class="relative">
+            <!-- User Status Badge -->
+            <router-link 
+              to="/auth"
+              class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-xs transition"
+              :class="authStore.isAuthenticated 
+                ? 'bg-slate-800/80 border-slate-700 text-slate-200 hover:border-slate-600' 
+                : 'bg-indigo-600 text-white border-indigo-500 font-semibold shadow-sm'"
+            >
+              <span v-if="authStore.isAuthenticated" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>{{ authStore.isAuthenticated ? `${authStore.user?.name} (${authStore.role})` : 'Sign In' }}</span>
+            </router-link>
+
+            <!-- Tenant Selector -->
+            <div class="relative hidden sm:block">
               <div class="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-1.5 shadow-sm">
-                <span class="w-2 h-2 rounded-full" :class="tenantStore.hasTenant ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'"></span>
-                <span class="text-xs text-slate-400 hidden sm:inline">Tenant:</span>
+                <span class="w-2 h-2 rounded-full" :class="tenantStore.hasTenant ? 'bg-indigo-400 animate-pulse' : 'bg-amber-400'"></span>
+                <span class="text-xs text-slate-400">Tenant:</span>
                 <select 
                   :value="tenantStore.activeSchoolId"
                   @change="handleTenantChange($event.target.value)"
@@ -86,7 +111,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
         <div>Bina Schools &bull; Laravel 11 + Vue 3 Monorepo Multi-Tenancy Architecture</div>
         <div class="font-mono text-slate-400 text-[11px]">
-          Global Eloquent Scope &bull; Subdomain &amp; X-School-Id Header
+          Spatie Tenant-Scoped Roles &bull; Sanctum Auth &bull; Global Eloquent Scope
         </div>
       </div>
     </footer>
@@ -96,8 +121,10 @@
 <script setup>
 import { onMounted } from 'vue';
 import { useTenantStore } from './stores/tenant';
+import { useAuthStore } from './stores/auth';
 
 const tenantStore = useTenantStore();
+const authStore = useAuthStore();
 
 function handleTenantChange(val) {
   if (!val) {
@@ -110,5 +137,6 @@ function handleTenantChange(val) {
 
 onMounted(() => {
   tenantStore.fetchSchools();
+  authStore.fetchCurrentUser();
 });
 </script>

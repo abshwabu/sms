@@ -1,0 +1,80 @@
+import { defineStore } from 'pinia';
+import axios from 'axios';
+import { useTenantStore } from './tenant';
+
+export const useAuthStore = defineStore('auth', {
+    state: () => ({
+        user: JSON.parse(localStorage.getItem('auth_user') || 'null'),
+        token: localStorage.getItem('auth_token') || null,
+        loading: false,
+        error: null,
+    }),
+
+    getters: {
+        isAuthenticated: (state) => !!state.token && !!state.user,
+        role: (state) => state.user?.role || null,
+        isSuperAdmin: (state) => state.user?.role === 'super_admin',
+        isSchoolAdmin: (state) => state.user?.role === 'school_admin' || state.user?.role === 'super_admin',
+        isTeacher: (state) => state.user?.role === 'teacher',
+        isStudent: (state) => state.user?.role === 'student',
+        isParent: (state) => state.user?.role === 'parent',
+        schoolContext: (state) => state.user?.school || null,
+    },
+
+    actions: {
+        async login(email, password) {
+            this.loading = true;
+            this.error = null;
+            try {
+                const res = await axios.post('/auth/login', { email, password });
+                const { token, user } = res.data.data;
+
+                this.token = token;
+                this.user = user;
+                localStorage.setItem('auth_token', token);
+                localStorage.setItem('auth_user', JSON.stringify(user));
+
+                // Sync tenant store with user's school if available
+                const tenantStore = useTenantStore();
+                if (user.school) {
+                    tenantStore.selectSchool(user.school);
+                }
+
+                return { success: true, user };
+            } catch (err) {
+                this.error = err.response?.data?.error?.message || 'Login failed.';
+                return { success: false, error: this.error };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async logout() {
+            try {
+                if (this.token) {
+                    await axios.post('/auth/logout');
+                }
+            } catch (err) {
+                // Ignore logout network errors
+            } finally {
+                this.token = null;
+                this.user = null;
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('auth_user');
+            }
+        },
+
+        async fetchCurrentUser() {
+            if (!this.token) return null;
+            try {
+                const res = await axios.get('/auth/me');
+                this.user = res.data.data;
+                localStorage.setItem('auth_user', JSON.stringify(this.user));
+                return this.user;
+            } catch (err) {
+                this.logout();
+                return null;
+            }
+        },
+    },
+});

@@ -26,6 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'tenant.resolve' => ResolveTenant::class,
             'tenant.require' => RequireTenant::class,
+            'tenant.user' => \App\Http\Middleware\EnsureUserBelongsToTenant::class,
+            'role' => \App\Http\Middleware\RequireRole::class,
         ]);
 
         $middleware->api(prepend: [

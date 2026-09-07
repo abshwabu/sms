@@ -36,17 +36,8 @@ class SchoolSeeder extends Seeder
             ]
         );
 
-        // Seed users and courses within Greenwood context
+        // Seed courses within Greenwood context
         $tenantManager->setTenant($greenwood);
-
-        User::updateOrCreate(
-            ['email' => 'principal@greenwood.edu'],
-            [
-                'school_id' => $greenwood->id,
-                'name' => 'Principal Skinner',
-                'password' => Hash::make('password123'),
-            ]
-        );
 
         $greenwoodCourses = [
             ['code' => 'BIO-101', 'name' => 'AP Biology', 'description' => 'Advanced placement study of molecular, cellular, and organismal biology.'],
@@ -80,17 +71,8 @@ class SchoolSeeder extends Seeder
             ]
         );
 
-        // Seed users and courses within Oakridge context
+        // Seed courses within Oakridge context
         $tenantManager->setTenant($oakridge);
-
-        User::updateOrCreate(
-            ['email' => 'dean@oakridge.org'],
-            [
-                'school_id' => $oakridge->id,
-                'name' => 'Dean Thomas',
-                'password' => Hash::make('password123'),
-            ]
-        );
 
         $oakridgeCourses = [
             ['code' => 'ROB-101', 'name' => 'Intro to Robotics & AI', 'description' => 'Fundamentals of autonomous robotics, kinematics, and intelligent agents.'],

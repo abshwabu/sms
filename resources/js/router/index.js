@@ -3,12 +3,24 @@ import DashboardView from '../views/DashboardView.vue';
 import SchoolsView from '../views/SchoolsView.vue';
 import CoursesView from '../views/CoursesView.vue';
 import HealthView from '../views/HealthView.vue';
+import AuthView from '../views/AuthView.vue';
+import OnboardingView from '../views/OnboardingView.vue';
 
 const routes = [
     {
         path: '/',
         name: 'dashboard',
         component: DashboardView,
+    },
+    {
+        path: '/auth',
+        name: 'auth',
+        component: AuthView,
+    },
+    {
+        path: '/onboarding',
+        name: 'onboarding',
+        component: OnboardingView,
     },
     {
         path: '/schools',
