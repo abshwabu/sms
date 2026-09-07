@@ -67,6 +67,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the student profile if the user is a student.
+     */
+    public function student(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    /**
      * Invitations sent by this user.
      */
     public function sentInvitations(): HasMany

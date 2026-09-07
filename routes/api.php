@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\SchoolAdminController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SectionController;
+use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\TermController;
 use Illuminate\Support\Facades\Route;
 
@@ -59,6 +60,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/sections', [SectionController::class, 'index'])->name('api.sections.index');
         Route::get('/sections/{section}', [SectionController::class, 'show'])->name('api.sections.show');
 
+        // Students (Read)
+        Route::get('/students', [StudentController::class, 'index'])->name('api.students.index');
+        Route::get('/students/{student}', [StudentController::class, 'show'])->name('api.students.show');
+
         // School Admin Only Endpoints (403 for teacher/student/parent)
         Route::middleware('role:school_admin,super_admin')->group(function () {
             // School admin management
@@ -88,6 +93,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/sections/{section}', [SectionController::class, 'destroy'])->name('api.sections.destroy');
             Route::post('/sections/{section}/assign-student', [SectionController::class, 'assignStudent'])->name('api.sections.assign-student');
             Route::post('/sections/promote', [SectionController::class, 'promote'])->name('api.sections.promote');
+
+            // Student Management & Enrollment (Write)
+            Route::post('/students', [StudentController::class, 'store'])->name('api.students.store');
+            Route::put('/students/{student}', [StudentController::class, 'update'])->name('api.students.update');
+            Route::delete('/students/{student}', [StudentController::class, 'destroy'])->name('api.students.destroy');
+            Route::post('/students/import', [StudentController::class, 'import'])->name('api.students.import');
+            Route::post('/students/promote-roster', [StudentController::class, 'promoteRoster'])->name('api.students.promote-roster');
         });
     });
 });

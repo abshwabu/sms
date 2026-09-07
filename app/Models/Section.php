@@ -32,13 +32,15 @@ class Section extends Model
     protected static function booted(): void
     {
         static::saving(function ($section) {
-            if ($section->academicYear && $section->academicYear->isClosed()) {
+            $year = AcademicYear::withoutGlobalScopes()->find($section->academic_year_id);
+            if ($year && $year->isClosed()) {
                 throw new ClosedAcademicYearException('Cannot add or modify sections in a closed academic year.');
             }
         });
 
         static::deleting(function ($section) {
-            if ($section->academicYear && $section->academicYear->isClosed()) {
+            $year = AcademicYear::withoutGlobalScopes()->find($section->academic_year_id);
+            if ($year && $year->isClosed()) {
                 throw new ClosedAcademicYearException('Cannot delete sections in a closed academic year.');
             }
         });
@@ -64,8 +66,18 @@ class Section extends Model
         return $this->hasMany(StudentSectionAssignment::class);
     }
 
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
     public function enrolledCount(): int
     {
+        $count = $this->enrollments()->where('status', 'enrolled')->count();
+        if ($count > 0) {
+            return $count;
+        }
+
         return $this->studentAssignments()->where('status', 'enrolled')->count();
     }
 

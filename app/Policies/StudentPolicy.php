@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\Student;
 use App\Models\User;
 
 class StudentPolicy extends BaseTenantPolicy
@@ -18,7 +19,7 @@ class StudentPolicy extends BaseTenantPolicy
     /**
      * Determine whether the user can view the specific student record.
      */
-    public function view(User $user, User $student): bool
+    public function view(User $user, Student|User $student): bool
     {
         if (! $this->isSameSchool($user, $student)) {
             return false;
@@ -30,7 +31,8 @@ class StudentPolicy extends BaseTenantPolicy
         }
 
         // Student can view their own record
-        if ($user->isStudent() && $user->id === $student->id) {
+        $studentUserId = $student instanceof Student ? $student->user_id : $student->id;
+        if ($user->isStudent() && $user->id === $studentUserId) {
             return true;
         }
 
@@ -55,7 +57,7 @@ class StudentPolicy extends BaseTenantPolicy
     /**
      * Determine whether the user can update student records.
      */
-    public function update(User $user, User $student): bool
+    public function update(User $user, Student|User $student): bool
     {
         if (! $this->isSameSchool($user, $student)) {
             return false;
@@ -67,12 +69,28 @@ class StudentPolicy extends BaseTenantPolicy
     /**
      * Determine whether the user can delete student records.
      */
-    public function delete(User $user, User $student): bool
+    public function delete(User $user, Student|User $student): bool
     {
         if (! $this->isSameSchool($user, $student)) {
             return false;
         }
 
+        return $user->isSchoolAdmin();
+    }
+
+    /**
+     * Determine whether the user can bulk import students.
+     */
+    public function import(User $user): bool
+    {
+        return $user->isSchoolAdmin();
+    }
+
+    /**
+     * Determine whether the user can promote rosters.
+     */
+    public function promote(User $user): bool
+    {
         return $user->isSchoolAdmin();
     }
 }
