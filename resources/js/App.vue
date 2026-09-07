@@ -28,6 +28,12 @@
                 Dashboard
               </router-link>
               <router-link 
+                to="/academic" 
+                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
+              >
+                Academic Structure
+              </router-link>
+              <router-link 
                 to="/auth" 
                 class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
               >
@@ -111,7 +117,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
         <div>Bina Schools &bull; Laravel 11 + Vue 3 Monorepo Multi-Tenancy Architecture</div>
         <div class="font-mono text-slate-400 text-[11px]">
-          Spatie Tenant-Scoped Roles &bull; Sanctum Auth &bull; Global Eloquent Scope
+          Academic Hierarchy &bull; Grade &amp; Homeroom Centric &bull; Immutable History
         </div>
       </div>
     </footer>

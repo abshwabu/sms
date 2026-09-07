@@ -43,6 +43,10 @@ return Application::configure(basePath: dirname(__DIR__))
             return ApiResponse::error($e->getMessage(), 'TENANT_NOT_FOUND', 404);
         });
 
+        $exceptions->render(function (\App\Tenancy\Exceptions\ClosedAcademicYearException $e, Request $request) {
+            return ApiResponse::error($e->getMessage(), 'CLOSED_ACADEMIC_YEAR', 422);
+        });
+
         $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return ApiResponse::validationError($e->errors(), $e->getMessage());
