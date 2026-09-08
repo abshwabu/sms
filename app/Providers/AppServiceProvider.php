@@ -36,6 +36,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(\App\Models\Book::class, \App\Policies\LibraryPolicy::class);
         Gate::policy(\App\Models\BookLoan::class, \App\Policies\LibraryPolicy::class);
         Gate::policy(\App\Models\LibraryFine::class, \App\Policies\LibraryPolicy::class);
+        Gate::policy(\App\Models\TransportRoute::class, \App\Policies\TransportPolicy::class);
+        Gate::policy(\App\Models\TransportStop::class, \App\Policies\TransportPolicy::class);
+        Gate::policy(\App\Models\StudentTransport::class, \App\Policies\TransportPolicy::class);
         Route::model('parent', ParentProfile::class);
     }
 }

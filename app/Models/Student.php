@@ -74,6 +74,11 @@ class Student extends Model
         return $this->hasMany(BookLoan::class)->whereNull('returned_at')->orderBy('due_at', 'asc');
     }
 
+    public function transportAssignment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(StudentTransport::class);
+    }
+
     /**
      * Scope search across student name, email, and admission number.
      */

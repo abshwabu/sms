@@ -586,6 +586,103 @@
           </div>
         </div>
 
+        <!-- School Bus & Transport Schedule (Prompt 11) -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>School Bus &amp; Daily Commute</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+                  Transit Schedule
+                </span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Assigned bus route, designated pickup/dropoff stop, and scheduled arrival times.
+              </p>
+            </div>
+            <span v-if="childTransport?.has_transport" class="text-xs text-amber-400 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+              Bus Commuter
+            </span>
+          </div>
+
+          <div v-if="transportLoading" class="py-4 text-center text-xs text-slate-500">
+            Loading child transport schedule...
+          </div>
+
+          <div v-else-if="childTransport?.has_transport" class="space-y-4">
+            <!-- Main Bus & Designated Stop Card -->
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800/90 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Assigned Route</span>
+                <h4 class="text-sm font-bold text-white mt-0.5">{{ childTransport.route_name }}</h4>
+                <p class="text-xs text-slate-400 mt-0.5">
+                  {{ childTransport.vehicle_info }} &bull; Driver: <strong class="text-slate-300">{{ childTransport.driver_name }}</strong> ({{ childTransport.driver_contact }})
+                </p>
+              </div>
+
+              <!-- Pickup & Dropoff Time Cards -->
+              <div class="flex items-center gap-3">
+                <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center min-w-[110px]">
+                  <span class="text-[10px] text-slate-400 block uppercase font-medium">Pickup Time</span>
+                  <span class="font-mono text-emerald-400 font-bold text-sm">{{ childTransport.pickup_time }}</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center min-w-[110px]">
+                  <span class="text-[10px] text-slate-400 block uppercase font-medium">Dropoff Time</span>
+                  <span class="font-mono text-amber-400 font-bold text-sm">{{ childTransport.dropoff_time }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Designated Stop Details -->
+            <div class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-2 text-xs">
+              <span class="text-amber-400 text-sm">🚏</span>
+              <div>
+                <div class="font-bold text-amber-200">
+                  Designated Stop: {{ childTransport.stop_name }}
+                  <span class="ml-1 text-[11px] font-mono text-amber-300/80">(Stop #{{ childTransport.sequence }})</span>
+                </div>
+                <div v-if="childTransport.stop?.landmark" class="text-slate-300 text-[11px] mt-0.5">
+                  Landmark: {{ childTransport.stop.landmark }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Route Stops Sequence -->
+            <div v-if="childTransport.all_route_stops?.length">
+              <span class="text-[11px] font-medium text-slate-400 block mb-2">Complete Route Progression:</span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div
+                  v-for="s in childTransport.all_route_stops"
+                  :key="s.id"
+                  class="p-2.5 rounded-lg border text-xs"
+                  :class="s.is_child_stop ? 'bg-amber-950/30 border-amber-500/40 ring-1 ring-amber-500/20' : 'bg-slate-950/60 border-slate-800'"
+                >
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="font-semibold text-white truncate">
+                      #{{ s.sequence }} {{ s.stop_name }}
+                    </span>
+                    <span v-if="s.is_child_stop" class="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">
+                      Your Stop
+                    </span>
+                  </div>
+                  <div class="text-[10px] font-mono text-slate-400 mt-1 flex justify-between">
+                    <span>Pickup: {{ s.pickup_time }}</span>
+                    <span>Dropoff: {{ s.dropoff_time }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="py-6 text-center bg-slate-950/40 rounded-lg border border-dashed border-slate-800/80">
+            <div class="text-2xl mb-1">🚌</div>
+            <div class="text-xs font-semibold text-slate-300">No Bus Route Assigned</div>
+            <p class="text-[11px] text-slate-500 mt-1 max-w-sm mx-auto">
+              This student does not currently use school transport services.
+            </p>
+          </div>
+        </div>
+
         <!-- Enrollment History / Timeline Card -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
           <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
@@ -1232,6 +1329,22 @@ async function loadChildLibrary(childId) {
     }
 }
 
+const childTransport = ref(null);
+const transportLoading = ref(false);
+
+async function loadChildTransport(childId) {
+    if (!childId) return;
+    transportLoading.value = true;
+    try {
+        const res = await axios.get(`/parent/children/${childId}/transport`);
+        childTransport.value = res.data.data;
+    } catch (e) {
+        childTransport.value = null;
+    } finally {
+        transportLoading.value = false;
+    }
+}
+
 async function downloadChildPdf(rc) {
     const activeKid = parentStore.activeChild;
     if (!activeKid || !rc) return;
@@ -1259,6 +1372,7 @@ watch(() => parentStore.activeChild, (newChild) => {
         loadChildReportCards(newChild.id);
         loadChildTimetable(newChild.id);
         loadChildLibrary(newChild.id);
+        loadChildTransport(newChild.id);
     }
 }, { immediate: true });
 
@@ -1271,6 +1385,7 @@ onMounted(async () => {
             loadChildReportCards(kids[0].id);
             loadChildTimetable(kids[0].id);
             loadChildLibrary(kids[0].id);
+            loadChildTransport(kids[0].id);
         }
     } else if (authStore.isSchoolAdmin) {
         activeTab.value = 'directory';
@@ -1283,6 +1398,7 @@ onMounted(async () => {
             loadChildReportCards(kids[0].id);
             loadChildTimetable(kids[0].id);
             loadChildLibrary(kids[0].id);
+            loadChildTransport(kids[0].id);
         }
     }
 });

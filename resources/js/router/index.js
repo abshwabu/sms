@@ -13,12 +13,18 @@ import AttendanceView from '../views/AttendanceView.vue';
 import GradingView from '../views/GradingView.vue';
 import TimetableView from '../views/TimetableView.vue';
 import LibraryView from '../views/LibraryView.vue';
+import TransportView from '../views/TransportView.vue';
 
 const routes = [
     {
         path: '/',
         name: 'dashboard',
         component: DashboardView,
+    },
+    {
+        path: '/transport',
+        name: 'transport',
+        component: TransportView,
     },
     {
         path: '/library',

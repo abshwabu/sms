@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\TermController;
 use App\Http\Controllers\Api\TimetableController;
+use App\Http\Controllers\Api\TransportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -120,6 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/student/report-cards/{reportCard}/pdf', [ReportCardController::class, 'studentDownloadPdf'])->name('api.student.report-cards.pdf');
         Route::get('/student/timetable', [TimetableController::class, 'getMyStudentTimetable'])->name('api.student.timetable');
         Route::get('/student/borrowed-books', [LibraryController::class, 'myBorrowedBooks'])->name('api.student.borrowed-books');
+        Route::get('/student/transport', [TransportController::class, 'myStudentTransport'])->name('api.student.transport');
 
         // Parent Portal (Child switching & dashboard access)
         Route::prefix('parent')->group(function () {
@@ -130,7 +132,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/children/{student}/report-cards/{reportCard}/pdf', [ReportCardController::class, 'parentDownloadChildPdf'])->name('api.parent.child-report-cards.pdf');
             Route::get('/children/{student}/timetable', [TimetableController::class, 'getParentChildTimetable'])->name('api.parent.child-timetable');
             Route::get('/children/{student}/borrowed-books', [LibraryController::class, 'childBorrowedBooks'])->name('api.parent.child-borrowed-books');
+            Route::get('/children/{student}/transport', [TransportController::class, 'parentChildTransport'])->name('api.parent.child-transport');
         });
+
+        // Transport Routes (Read)
+        Route::get('/transport/routes', [TransportController::class, 'routes'])->name('api.transport.routes.index');
+        Route::get('/transport/routes/{route}', [TransportController::class, 'showRoute'])->name('api.transport.routes.show');
 
         // Library Catalog (Read-only for all school members)
         Route::get('/library/books', [LibraryController::class, 'books'])->name('api.library.books.index');
@@ -208,6 +215,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
             // Calendar & School Days Management (Admin)
             Route::post('/calendar', [AttendanceController::class, 'storeCalendarDay'])->name('api.calendar.store');
+
+            // Transport Management (Admin)
+            Route::prefix('transport')->group(function () {
+                Route::post('/routes', [TransportController::class, 'storeRoute'])->name('api.transport.routes.store');
+                Route::put('/routes/{route}', [TransportController::class, 'updateRoute'])->name('api.transport.routes.update');
+                Route::delete('/routes/{route}', [TransportController::class, 'destroyRoute'])->name('api.transport.routes.destroy');
+                Route::post('/routes/{route}/stops', [TransportController::class, 'storeStop'])->name('api.transport.stops.store');
+                Route::put('/stops/{stop}', [TransportController::class, 'updateStop'])->name('api.transport.stops.update');
+                Route::delete('/stops/{stop}', [TransportController::class, 'destroyStop'])->name('api.transport.stops.destroy');
+                Route::get('/assignments', [TransportController::class, 'assignments'])->name('api.transport.assignments.index');
+                Route::post('/assignments', [TransportController::class, 'assignStudent'])->name('api.transport.assignments.store');
+                Route::post('/sections/{section}/routes/{route}/assign', [TransportController::class, 'bulkAssignSection'])->name('api.transport.sections.assign');
+                Route::delete('/students/{student}/assignment', [TransportController::class, 'unassignStudent'])->name('api.transport.students.unassign');
+            });
         });
     });
 });

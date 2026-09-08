@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             GradingSeeder::class,
             TimetableSeeder::class,
             LibrarySeeder::class,
+            TransportSeeder::class,
         ]);
     }
 }
