@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\AttendanceRecord;
 use App\Models\ParentProfile;
+use App\Policies\AttendancePolicy;
 use App\Policies\ParentProfilePolicy;
 use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\Gate;
@@ -27,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(ParentProfile::class, ParentProfilePolicy::class);
+        Gate::policy(AttendanceRecord::class, AttendancePolicy::class);
         Route::model('parent', ParentProfile::class);
     }
 }

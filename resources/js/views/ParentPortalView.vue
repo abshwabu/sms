@@ -298,6 +298,91 @@
           </div>
         </div>
 
+        <!-- Child Daily Attendance & Rate Card -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>Attendance Performance &amp; History</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono">
+                Official Records
+              </span>
+            </h3>
+            <span class="text-xs text-slate-500">
+              Excludes weekends &amp; school holidays
+            </span>
+          </div>
+
+          <div v-if="attendanceLoading" class="py-4 text-center text-xs text-slate-500">
+            Loading child attendance records...
+          </div>
+
+          <div v-else-if="childAttendance?.summary" class="space-y-4">
+            <!-- Attendance Rate Metric Bars -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                <span class="text-[11px] text-slate-400">School Days</span>
+                <div class="text-base font-bold text-white mt-0.5">{{ childAttendance.summary.total_school_days }}</div>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                <span class="text-[11px] text-emerald-400">Present</span>
+                <div class="text-base font-bold text-emerald-400 mt-0.5">{{ childAttendance.summary.present_days }}</div>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                <span class="text-[11px] text-amber-400">Late / Tardy</span>
+                <div class="text-base font-bold text-amber-400 mt-0.5">{{ childAttendance.summary.late_days }}</div>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                <span class="text-[11px] text-rose-400">Absent</span>
+                <div class="text-base font-bold text-rose-400 mt-0.5">{{ childAttendance.summary.absent_days }}</div>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                <span class="text-[11px] text-blue-400">Excused</span>
+                <div class="text-base font-bold text-blue-400 mt-0.5">{{ childAttendance.summary.excused_days }}</div>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                <span class="text-[11px] text-emerald-400">Attendance Rate</span>
+                <div class="text-base font-black text-emerald-300 mt-0.5">
+                  {{ childAttendance.summary.attendance_percentage }}%
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Records Table -->
+            <div v-if="childAttendance.recent_records?.length" class="overflow-x-auto pt-2">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 font-medium border-b border-slate-800">
+                  <tr>
+                    <th class="p-2.5">Date</th>
+                    <th class="p-2.5">Status</th>
+                    <th class="p-2.5">Remarks / Reason</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr v-for="rec in childAttendance.recent_records.slice(0, 5)" :key="rec.id">
+                    <td class="p-2.5 font-mono text-white">{{ rec.date }}</td>
+                    <td class="p-2.5">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase"
+                        :class="{
+                          'bg-emerald-500/10 text-emerald-400': rec.status === 'present',
+                          'bg-amber-500/10 text-amber-400': rec.status === 'late',
+                          'bg-rose-500/10 text-rose-400': rec.status === 'absent',
+                          'bg-blue-500/10 text-blue-400': rec.status === 'excused',
+                        }"
+                      >
+                        {{ rec.status }}
+                      </span>
+                    </td>
+                    <td class="p-2.5 text-slate-400">{{ rec.remarks || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div v-else class="text-xs text-slate-500 py-4 text-center">
+            No attendance records logged for this student yet.
+          </div>
+        </div>
+
         <!-- Enrollment History / Timeline Card -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
           <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
@@ -870,16 +955,44 @@ async function submitInviteParent() {
     }
 }
 
+const childAttendance = ref(null);
+const attendanceLoading = ref(false);
+
+async function loadChildAttendance(childId) {
+    if (!childId) return;
+    attendanceLoading.value = true;
+    try {
+        const res = await axios.get(`/parent/children/${childId}/attendance`);
+        childAttendance.value = res.data.data;
+    } catch (e) {
+        childAttendance.value = null;
+    } finally {
+        attendanceLoading.value = false;
+    }
+}
+
+watch(() => parentStore.activeChild, (newChild) => {
+    if (newChild?.id) {
+        loadChildAttendance(newChild.id);
+    }
+}, { immediate: true });
+
 onMounted(async () => {
     if (authStore.isParent) {
         activeTab.value = 'portal';
-        await parentStore.fetchChildren();
+        const kids = await parentStore.fetchChildren();
+        if (kids.length > 0) {
+            loadChildAttendance(kids[0].id);
+        }
     } else if (authStore.isSchoolAdmin) {
         activeTab.value = 'directory';
         await parentStore.fetchParents(1);
         await loadAvailableStudents();
     } else {
-        await parentStore.fetchChildren();
+        const kids = await parentStore.fetchChildren();
+        if (kids.length > 0) {
+            loadChildAttendance(kids[0].id);
+        }
     }
 });
 </script>

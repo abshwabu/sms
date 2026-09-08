@@ -9,12 +9,18 @@ import AcademicView from '../views/AcademicView.vue';
 import StudentsView from '../views/StudentsView.vue';
 import StaffView from '../views/StaffView.vue';
 import ParentPortalView from '../views/ParentPortalView.vue';
+import AttendanceView from '../views/AttendanceView.vue';
 
 const routes = [
     {
         path: '/',
         name: 'dashboard',
         component: DashboardView,
+    },
+    {
+        path: '/attendance',
+        name: 'attendance',
+        component: AttendanceView,
     },
     {
         path: '/students',

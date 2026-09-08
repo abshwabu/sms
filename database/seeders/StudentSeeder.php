@@ -39,8 +39,11 @@ class StudentSeeder extends Seeder
         $year2024 = AcademicYear::where('name', '2024/2025')->first();
         $year2025 = AcademicYear::where('name', '2025/2026')->first();
 
-        $g9SecA = Section::where('name', 'Grade 9 - Section A')->first();
-        $g10SecA = Section::where('name', 'Grade 10 - Section A')->first();
+        $activeSection = Section::where('school_id', $greenwood->id)
+            ->where('academic_year_id', $year2025?->id)
+            ->first();
+        $g9SecA = $activeSection;
+        $g10SecA = $activeSection;
 
         $studentsData = [
             [

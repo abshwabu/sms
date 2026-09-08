@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             StudentSeeder::class,
             StaffSeeder::class,
             ParentSeeder::class,
+            AttendanceSeeder::class,
         ]);
     }
 }

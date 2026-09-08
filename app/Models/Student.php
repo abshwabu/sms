@@ -59,6 +59,11 @@ class Student extends Model
             ->withTimestamps();
     }
 
+    public function attendanceRecords(): HasMany
+    {
+        return $this->hasMany(AttendanceRecord::class)->orderBy('date', 'desc');
+    }
+
     /**
      * Scope search across student name, email, and admission number.
      */

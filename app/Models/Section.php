@@ -76,6 +76,11 @@ class Section extends Model
         return $this->hasMany(SectionSubjectTeacher::class);
     }
 
+    public function attendanceRecords(): HasMany
+    {
+        return $this->hasMany(AttendanceRecord::class)->orderBy('date', 'desc');
+    }
+
     /**
      * Determine if a user or staff member is the homeroom teacher of this section.
      */

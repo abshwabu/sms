@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AcademicYearController;
+use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClaimCodeController;
 use App\Http\Controllers\Api\CourseController;
@@ -64,22 +65,35 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/sections/{section}', [SectionController::class, 'show'])->name('api.sections.show');
         Route::get('/sections/{section}/roster', [SectionController::class, 'roster'])->name('api.sections.roster');
         Route::get('/sections/{section}/permissions', [SectionController::class, 'permissions'])->name('api.sections.permissions');
-        Route::post('/sections/{section}/attendance', [SectionController::class, 'recordAttendance'])->name('api.sections.attendance');
+        
+        // Grade/Section-Based Daily Attendance
+        Route::get('/sections/{section}/attendance', [AttendanceController::class, 'getSectionDailyAttendance'])->name('api.sections.attendance.get');
+        Route::post('/sections/{section}/attendance', [AttendanceController::class, 'recordSectionAttendance'])->name('api.sections.attendance.post');
+        Route::get('/sections/{section}/attendance-summary', [AttendanceController::class, 'getSectionAttendanceSummary'])->name('api.sections.attendance.summary');
         Route::post('/sections/{section}/grades', [SectionController::class, 'recordGrades'])->name('api.sections.grades');
 
         // Staff Directory (Read)
         Route::get('/staff', [StaffController::class, 'index'])->name('api.staff.index');
         Route::get('/staff/{staff}', [StaffController::class, 'show'])->name('api.staff.show');
 
-        // Students (Read)
+        // Students (Read) & Attendance Summaries
         Route::get('/students', [StudentController::class, 'index'])->name('api.students.index');
         Route::get('/students/{student}', [StudentController::class, 'show'])->name('api.students.show');
+        Route::get('/students/{student}/attendance', [AttendanceController::class, 'getStudentAttendanceSummary'])->name('api.students.attendance');
+        Route::get('/students/{student}/attendance-summary', [AttendanceController::class, 'getStudentAttendanceSummary'])->name('api.students.attendance-summary');
+
+        // Student Self View
+        Route::get('/student/attendance', [AttendanceController::class, 'getMyStudentAttendance'])->name('api.student.my-attendance');
 
         // Parent Portal (Child switching & dashboard access)
         Route::prefix('parent')->group(function () {
             Route::get('/children', [ParentPortalController::class, 'children'])->name('api.parent.children');
             Route::get('/children/{student}/dashboard', [ParentPortalController::class, 'childDashboard'])->name('api.parent.child-dashboard');
+            Route::get('/children/{student}/attendance', [AttendanceController::class, 'getParentChildAttendance'])->name('api.parent.child-attendance');
         });
+
+        // School Calendar (Read)
+        Route::get('/calendar', [AttendanceController::class, 'getCalendar'])->name('api.calendar.index');
 
         // School Admin Only Endpoints (403 for teacher/student/parent)
         Route::middleware('role:school_admin,super_admin')->group(function () {
@@ -133,6 +147,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/parents/{parent}/link-student', [ParentManagementController::class, 'linkStudent'])->name('api.parents.link-student');
             Route::delete('/parents/{parent}/students/{student}', [ParentManagementController::class, 'unlinkStudent'])->name('api.parents.unlink-student');
             Route::post('/parents/invite', [ParentManagementController::class, 'invite'])->name('api.parents.invite');
+
+            // Calendar & School Days Management (Admin)
+            Route::post('/calendar', [AttendanceController::class, 'storeCalendarDay'])->name('api.calendar.store');
         });
     });
 });
