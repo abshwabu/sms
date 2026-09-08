@@ -142,5 +142,55 @@ class StaffSeeder extends Seeder
 
             $tenantManager->clearTenant();
         }
+
+        // 3. Maplewood Elementary Staff
+        $maplewood = School::where('subdomain', 'maplewood')->first();
+        if ($maplewood) {
+            $tenantManager->setTenant($maplewood);
+            app(PermissionRegistrar::class)->setPermissionsTeamId($maplewood->id);
+
+            $claraUser = User::where('email', 'teacher@maplewood.edu')->first();
+            if ($claraUser) {
+                $claraStaff = Staff::updateOrCreate(
+                    ['school_id' => $maplewood->id, 'user_id' => $claraUser->id],
+                    [
+                        'staff_number' => 'MAP-STF-01',
+                        'role_title' => 'Grade 3 Homeroom & Primary Teacher',
+                        'department' => 'Primary Education',
+                        'hire_date' => '2023-08-20',
+                        'status' => 'active',
+                        'phone' => '+1 (555) 456-7891',
+                        'qualification' => 'B.S. in Elementary Education & Literacy',
+                        'subjects_taught' => ['Elementary English & Reading', 'Elementary Mathematics'],
+                    ]
+                );
+
+                $courses = Course::whereIn('code', ['ENG-ELEM', 'MATH-ELEM', 'SCI-ELEM'])->pluck('id');
+                $syncData = [];
+                foreach ($courses as $cId) {
+                    $syncData[$cId] = ['school_id' => $maplewood->id];
+                }
+                $claraStaff->courses()->sync($syncData);
+
+                // Assign subject teacher for Room 103
+                $room103 = Section::where('school_id', $maplewood->id)->where('name', 'Room 103')->first();
+                $engCourse = Course::where('school_id', $maplewood->id)->where('code', 'ENG-ELEM')->first();
+                if ($room103 && $engCourse) {
+                    SectionSubjectTeacher::updateOrCreate(
+                        [
+                            'section_id' => $room103->id,
+                            'course_id' => $engCourse->id,
+                            'staff_id' => $claraStaff->id,
+                        ],
+                        [
+                            'school_id' => $maplewood->id,
+                            'academic_year_id' => $room103->academic_year_id,
+                        ]
+                    );
+                }
+            }
+
+            $tenantManager->clearTenant();
+        }
     }
 }

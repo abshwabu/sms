@@ -88,6 +88,41 @@ class SchoolSeeder extends Seeder
             );
         }
 
+        // 3. Seed Maplewood Elementary School (Elementary grades demo)
+        $maplewood = School::updateOrCreate(
+            ['subdomain' => 'maplewood'],
+            [
+                'name' => 'Maplewood Elementary School',
+                'subdomain' => 'maplewood',
+                'logo' => 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=150',
+                'address' => '452 Maple Ave, Springfield, OR',
+                'contact_info' => [
+                    'email' => 'admin@maplewood.edu',
+                    'phone' => '+1 (555) 456-7890',
+                    'website' => 'https://maplewood.edu',
+                ],
+                'subscription_status' => 'active',
+                'timezone' => 'America/New_York',
+            ]
+        );
+
+        $tenantManager->setTenant($maplewood);
+
+        $maplewoodCourses = [
+            ['code' => 'ENG-ELEM', 'name' => 'Elementary English & Reading', 'description' => 'Phonics, reading comprehension, spelling, and creative writing.'],
+            ['code' => 'MATH-ELEM', 'name' => 'Elementary Mathematics', 'description' => 'Arithmetic, basic geometry, fractions, and problem solving.'],
+            ['code' => 'SCI-ELEM', 'name' => 'General Science & Nature', 'description' => 'Hands-on discovery of plants, animals, earth, and physical sciences.'],
+            ['code' => 'ART-ELEM', 'name' => 'Arts & Crafts', 'description' => 'Drawing, painting, sculpture, and visual appreciation.'],
+            ['code' => 'PE-ELEM', 'name' => 'Physical Education', 'description' => 'Health, motor skill development, sportsmanship, and games.'],
+        ];
+
+        foreach ($maplewoodCourses as $courseData) {
+            Course::updateOrCreate(
+                ['code' => $courseData['code'], 'school_id' => $maplewood->id],
+                $courseData
+            );
+        }
+
         // Clear tenant context after seeding
         $tenantManager->clearTenant();
     }

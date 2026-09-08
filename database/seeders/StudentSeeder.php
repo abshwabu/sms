@@ -160,5 +160,99 @@ class StudentSeeder extends Seeder
         }
 
         $tenantManager->clearTenant();
+
+        // 2. Maplewood Elementary Students
+        $maplewood = School::where('subdomain', 'maplewood')->first();
+        if ($maplewood) {
+            $tenantManager->setTenant($maplewood);
+            app(PermissionRegistrar::class)->setPermissionsTeamId($maplewood->id);
+
+            $studentRole = Role::firstOrCreate([
+                'name' => RoleEnum::STUDENT->value,
+                'guard_name' => 'web',
+                'school_id' => $maplewood->id,
+            ]);
+
+            $mapleYear = AcademicYear::where('school_id', $maplewood->id)->where('name', '2025/2026')->first();
+            $room103 = Section::where('school_id', $maplewood->id)->where('name', 'Room 103')->first();
+
+            $elemStudents = [
+                [
+                    'name' => 'Tommy Vance',
+                    'email' => 'student@maplewood.edu',
+                    'admission_number' => 'MAP-25-00101',
+                    'dob' => '2016-03-15',
+                    'gender' => 'male',
+                    'address' => '512 Elm St, Springfield',
+                    'guardian_name' => 'Sarah Vance',
+                    'guardian_phone' => '+1 (555) 456-7892',
+                    'guardian_email' => 'parent@maplewood.edu',
+                ],
+                [
+                    'name' => 'Maya Lin',
+                    'email' => 'maya.lin@maplewood.edu',
+                    'admission_number' => 'MAP-25-00102',
+                    'dob' => '2016-07-22',
+                    'gender' => 'female',
+                    'address' => '788 Cedar Way, Springfield',
+                    'guardian_name' => 'David Lin',
+                    'guardian_phone' => '+1 (555) 456-7893',
+                    'guardian_email' => 'david.lin@maplewood.edu',
+                ],
+            ];
+
+            foreach ($elemStudents as $data) {
+                $user = User::updateOrCreate(
+                    ['email' => $data['email']],
+                    [
+                        'school_id' => $maplewood->id,
+                        'name' => $data['name'],
+                        'password' => Hash::make('password123'),
+                        'role' => RoleEnum::STUDENT->value,
+                        'status' => UserStatus::ACTIVE,
+                        'email_verified_at' => now(),
+                    ]
+                );
+                $user->assignRole($studentRole);
+
+                $secId = $room103?->id;
+
+                $student = Student::updateOrCreate(
+                    ['school_id' => $maplewood->id, 'admission_number' => $data['admission_number']],
+                    [
+                        'user_id' => $user->id,
+                        'date_of_birth' => $data['dob'],
+                        'gender' => $data['gender'],
+                        'address' => $data['address'],
+                        'admission_date' => '2025-09-01',
+                        'current_section_id' => $secId,
+                        'status' => 'active',
+                        'guardian_info' => [
+                            'name' => $data['guardian_name'],
+                            'phone' => $data['guardian_phone'],
+                            'email' => $data['guardian_email'],
+                            'relationship' => 'Parent',
+                        ],
+                    ]
+                );
+
+                if ($mapleYear && $secId) {
+                    Enrollment::updateOrCreate(
+                        [
+                            'academic_year_id' => $mapleYear->id,
+                            'student_id' => $student->id,
+                        ],
+                        [
+                            'school_id' => $maplewood->id,
+                            'section_id' => $secId,
+                            'enrolled_at' => '2025-09-01',
+                            'status' => 'enrolled',
+                        ]
+                    );
+                }
+            }
+
+            $tenantManager->clearTenant();
+        }
     }
 }

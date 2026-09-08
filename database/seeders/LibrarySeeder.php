@@ -14,6 +14,7 @@ use App\Tenancy\TenantManager;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class LibrarySeeder extends Seeder
 {
@@ -26,6 +27,7 @@ class LibrarySeeder extends Seeder
 
         $greenwood = School::where('subdomain', 'greenwood')->first();
         $oakridge = School::where('subdomain', 'oakridge')->first();
+        $maplewood = School::where('subdomain', 'maplewood')->first();
 
         if ($greenwood) {
             $this->seedGreenwoodLibrary($greenwood, $tenantManager);
@@ -33,6 +35,10 @@ class LibrarySeeder extends Seeder
 
         if ($oakridge) {
             $this->seedOakridgeLibrary($oakridge, $tenantManager);
+        }
+
+        if ($maplewood) {
+            $this->seedMaplewoodLibrary($maplewood, $tenantManager);
         }
     }
 
@@ -296,5 +302,97 @@ class LibrarySeeder extends Seeder
                 $bData
             );
         }
+    }
+
+    protected function seedMaplewoodLibrary(School $school, TenantManager $tenantManager): void
+    {
+        $tenantManager->setTenant($school);
+
+        $librarianRole = Role::firstOrCreate([
+            'name' => RoleEnum::LIBRARIAN->value,
+            'guard_name' => 'web',
+            'school_id' => $school->id,
+        ]);
+
+        $librarian = User::updateOrCreate(
+            ['email' => 'librarian@maplewood.edu'],
+            [
+                'school_id' => $school->id,
+                'name' => 'Beverly Cleary',
+                'password' => Hash::make('password123'),
+                'role' => RoleEnum::LIBRARIAN->value,
+                'status' => UserStatus::ACTIVE,
+                'email_verified_at' => now(),
+            ]
+        );
+        $librarian->assignRole($librarianRole);
+
+        $books = [
+            [
+                'title' => "Charlotte's Web",
+                'author' => 'E.B. White',
+                'isbn' => '9780064400558',
+                'category' => "Children's Literature",
+                'copies_total' => 8,
+                'copies_available' => 7,
+                'shelf_location' => 'JUV-WHI-01',
+                'description' => 'The story of a pig named Wilbur and his friendship with a barn spider named Charlotte.',
+                'publisher' => 'HarperCollins',
+                'publication_year' => 1952,
+            ],
+            [
+                'title' => 'The Giving Tree',
+                'author' => 'Shel Silverstein',
+                'isbn' => '9780060256654',
+                'category' => 'Picture Books',
+                'copies_total' => 5,
+                'copies_available' => 5,
+                'shelf_location' => 'PIC-SIL-02',
+                'description' => 'A moving parable about the gift of giving and acceptance.',
+                'publisher' => 'Harper & Row',
+                'publication_year' => 1964,
+            ],
+            [
+                'title' => 'Where the Wild Things Are',
+                'author' => 'Maurice Sendak',
+                'isbn' => '9780060254926',
+                'category' => 'Picture Books',
+                'copies_total' => 6,
+                'copies_available' => 6,
+                'shelf_location' => 'PIC-SEN-03',
+                'description' => 'Max sails off to where the wild things are and becomes king of all wild things.',
+                'publisher' => 'Harper & Row',
+                'publication_year' => 1963,
+            ],
+        ];
+
+        $created = [];
+        foreach ($books as $b) {
+            $created[$b['isbn']] = Book::updateOrCreate(
+                ['school_id' => $school->id, 'isbn' => $b['isbn']],
+                $b
+            );
+        }
+
+        $tommy = Student::where('school_id', $school->id)->where('admission_number', 'MAP-25-00101')->first();
+        if ($tommy && isset($created['9780064400558'])) {
+            BookLoan::updateOrCreate(
+                [
+                    'school_id' => $school->id,
+                    'book_id' => $created['9780064400558']->id,
+                    'student_id' => $tommy->id,
+                    'status' => 'borrowed',
+                ],
+                [
+                    'user_id' => $tommy->user_id,
+                    'borrowed_at' => Carbon::now()->subDays(3),
+                    'due_at' => Carbon::now()->addDays(11),
+                    'checked_out_by' => $librarian->id,
+                    'notes' => 'Early reading assignment',
+                ]
+            );
+        }
+
+        $tenantManager->clearTenant();
     }
 }

@@ -176,5 +176,33 @@ class ParentSeeder extends Seeder
 
             $tenantManager->clearTenant();
         }
+
+        // 3. Maplewood Elementary Parents
+        $maplewood = School::where('subdomain', 'maplewood')->first();
+        if ($maplewood) {
+            $tenantManager->setTenant($maplewood);
+            app(PermissionRegistrar::class)->setPermissionsTeamId($maplewood->id);
+
+            $sarahUser = User::where('email', 'parent@maplewood.edu')->first();
+            $tommyStudent = Student::where('school_id', $maplewood->id)
+                ->where('admission_number', 'MAP-25-00101')
+                ->first();
+
+            if ($sarahUser && $tommyStudent) {
+                $sarahProfile = ParentProfile::updateOrCreate(
+                    ['school_id' => $maplewood->id, 'user_id' => $sarahUser->id],
+                    [
+                        'occupation' => 'Pediatric Nurse',
+                        'phone' => '+1 (555) 456-7892',
+                        'address' => '512 Elm St, Springfield',
+                        'emergency_contact' => '+1 (555) 456-7892',
+                    ]
+                );
+
+                $sarahProfile->linkStudent($tommyStudent->id, 'mother', true);
+            }
+
+            $tenantManager->clearTenant();
+        }
     }
 }

@@ -137,6 +137,8 @@ class TransportManagementTest extends TestCase
             ],
         ];
 
+        $initialStops = TransportStop::withoutGlobalScopes()->count();
+
         $response = $this->actingAs($this->greenwoodAdmin)
             ->postJson('/api/transport/routes', $payload, $headers);
 
@@ -153,7 +155,7 @@ class TransportManagementTest extends TestCase
             'school_id' => $this->greenwood->id,
         ]);
 
-        $this->assertDatabaseCount('transport_stops', 3 + 3 + 2 + 2); // Initial stops + 3 new
+        $this->assertDatabaseCount('transport_stops', $initialStops + 3); // Initial stops + 3 new
 
         $this->assertDatabaseHas('transport_stops', [
             'transport_route_id' => $routeId,

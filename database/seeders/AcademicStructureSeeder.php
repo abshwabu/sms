@@ -205,6 +205,107 @@ class AcademicStructureSeeder extends Seeder
             ]);
         }
 
+        // 3. Maplewood Elementary Academic Setup (Elementary Grades K-5)
+        $maplewood = School::where('subdomain', 'maplewood')->first();
+        if ($maplewood) {
+            $tenantManager->setTenant($maplewood);
+
+            $claraTeacher = User::where('email', 'teacher@maplewood.edu')->first();
+            $tommyStudent = User::where('email', 'student@maplewood.edu')->first();
+
+            // Elementary Grade Levels
+            $elemGrades = [
+                ['code' => 'KG', 'name' => 'Kindergarten', 'sequence' => 0, 'description' => 'Early childhood foundation year.'],
+                ['code' => 'G1', 'name' => 'Grade 1', 'sequence' => 1, 'description' => 'First grade primary education.'],
+                ['code' => 'G2', 'name' => 'Grade 2', 'sequence' => 2, 'description' => 'Second grade primary education.'],
+                ['code' => 'G3', 'name' => 'Grade 3', 'sequence' => 3, 'description' => 'Third grade intermediate primary education.'],
+                ['code' => 'G4', 'name' => 'Grade 4', 'sequence' => 4, 'description' => 'Fourth grade upper elementary education.'],
+                ['code' => 'G5', 'name' => 'Grade 5', 'sequence' => 5, 'description' => 'Fifth grade elementary graduating class.'],
+            ];
+
+            $gradeModels = [];
+            foreach ($elemGrades as $gData) {
+                $gradeModels[$gData['code']] = GradeLevel::updateOrCreate(
+                    ['school_id' => $maplewood->id, 'code' => $gData['code']],
+                    $gData
+                );
+            }
+
+            // Academic Year 2025/2026
+            $mapleYear = AcademicYear::updateOrCreate(
+                ['school_id' => $maplewood->id, 'name' => '2025/2026'],
+                [
+                    'start_date' => '2025-09-01',
+                    'end_date' => '2026-06-30',
+                    'is_active' => true,
+                    'is_closed' => false,
+                ]
+            );
+
+            Term::updateOrCreate(['academic_year_id' => $mapleYear->id, 'name' => 'Fall Term'], [
+                'school_id' => $maplewood->id,
+                'start_date' => '2025-09-01',
+                'end_date' => '2025-12-19',
+                'is_active' => true,
+            ]);
+
+            Term::updateOrCreate(['academic_year_id' => $mapleYear->id, 'name' => 'Winter Term'], [
+                'school_id' => $maplewood->id,
+                'start_date' => '2026-01-05',
+                'end_date' => '2026-03-27',
+                'is_active' => false,
+            ]);
+
+            Term::updateOrCreate(['academic_year_id' => $mapleYear->id, 'name' => 'Spring Term'], [
+                'school_id' => $maplewood->id,
+                'start_date' => '2026-04-06',
+                'end_date' => '2026-06-25',
+                'is_active' => false,
+            ]);
+
+            // Elementary Sections across K-5
+            $sectionsData = [
+                ['grade' => 'KG', 'name' => 'Room K1', 'capacity' => 20, 'teacher' => null],
+                ['grade' => 'G1', 'name' => 'Room 101', 'capacity' => 22, 'teacher' => null],
+                ['grade' => 'G2', 'name' => 'Room 102', 'capacity' => 24, 'teacher' => null],
+                ['grade' => 'G3', 'name' => 'Room 103', 'capacity' => 24, 'teacher' => $claraTeacher?->id],
+                ['grade' => 'G4', 'name' => 'Room 104', 'capacity' => 26, 'teacher' => null],
+                ['grade' => 'G5', 'name' => 'Room 105', 'capacity' => 26, 'teacher' => null],
+            ];
+
+            $mapleSections = [];
+            foreach ($sectionsData as $sData) {
+                $gModel = $gradeModels[$sData['grade']];
+                $sec = Section::updateOrCreate(
+                    [
+                        'academic_year_id' => $mapleYear->id,
+                        'grade_level_id' => $gModel->id,
+                        'name' => $sData['name'],
+                    ],
+                    [
+                        'school_id' => $maplewood->id,
+                        'capacity' => $sData['capacity'],
+                        'homeroom_teacher_id' => $sData['teacher'],
+                    ]
+                );
+                $mapleSections[$sData['grade']] = $sec;
+            }
+
+            // Assign Tommy Vance to Grade 3 - Room 103
+            if ($tommyStudent && isset($mapleSections['G3'])) {
+                StudentSectionAssignment::updateOrCreate([
+                    'academic_year_id' => $mapleYear->id,
+                    'student_id' => $tommyStudent->id,
+                ], [
+                    'school_id' => $maplewood->id,
+                    'section_id' => $mapleSections['G3']->id,
+                    'roll_number' => 'MAP-001',
+                    'status' => 'enrolled',
+                    'enrolled_at' => '2025-09-01',
+                ]);
+            }
+        }
+
         $tenantManager->clearTenant();
     }
 }

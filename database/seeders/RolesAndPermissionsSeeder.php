@@ -126,25 +126,45 @@ class RolesAndPermissionsSeeder extends Seeder
             // Seed sample accounts for this school
             $users = [
                 [
-                    'name' => $school->subdomain === 'greenwood' ? 'Principal Skinner' : 'Dean Thomas',
+                    'name' => match ($school->subdomain) {
+                        'greenwood' => 'Principal Skinner',
+                        'oakridge' => 'Dean Thomas',
+                        'maplewood' => 'Principal Audrey Chen',
+                        default => 'School Administrator',
+                    },
                     'email' => "admin@{$school->subdomain}.edu",
                     'role' => RoleEnum::SCHOOL_ADMIN,
                     'role_model' => $schoolAdminRole,
                 ],
                 [
-                    'name' => $school->subdomain === 'greenwood' ? 'Edna Krabappel' : 'Minerva McGonagall',
+                    'name' => match ($school->subdomain) {
+                        'greenwood' => 'Edna Krabappel',
+                        'oakridge' => 'Minerva McGonagall',
+                        'maplewood' => 'Clara Johnson',
+                        default => 'Faculty Teacher',
+                    },
                     'email' => "teacher@{$school->subdomain}.edu",
                     'role' => RoleEnum::TEACHER,
                     'role_model' => $teacherRole,
                 ],
                 [
-                    'name' => $school->subdomain === 'greenwood' ? 'Bart Simpson' : 'Harry Potter',
+                    'name' => match ($school->subdomain) {
+                        'greenwood' => 'Bart Simpson',
+                        'oakridge' => 'Harry Potter',
+                        'maplewood' => 'Tommy Vance',
+                        default => 'Student User',
+                    },
                     'email' => "student@{$school->subdomain}.edu",
                     'role' => RoleEnum::STUDENT,
                     'role_model' => $studentRole,
                 ],
                 [
-                    'name' => $school->subdomain === 'greenwood' ? 'Homer Simpson' : 'James Potter',
+                    'name' => match ($school->subdomain) {
+                        'greenwood' => 'Homer Simpson',
+                        'oakridge' => 'James Potter',
+                        'maplewood' => 'Sarah Vance',
+                        default => 'Parent User',
+                    },
                     'email' => "parent@{$school->subdomain}.edu",
                     'role' => RoleEnum::PARENT,
                     'role_model' => $parentRole,

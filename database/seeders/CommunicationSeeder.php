@@ -25,6 +25,7 @@ class CommunicationSeeder extends Seeder
 
         $greenwood = School::where('subdomain', 'greenwood')->first();
         $oakridge = School::where('subdomain', 'oakridge')->first();
+        $maplewood = School::where('subdomain', 'maplewood')->first();
 
         if ($greenwood) {
             $this->seedGreenwoodCommunications($greenwood, $tenantManager);
@@ -32,6 +33,10 @@ class CommunicationSeeder extends Seeder
 
         if ($oakridge) {
             $this->seedOakridgeCommunications($oakridge, $tenantManager);
+        }
+
+        if ($maplewood) {
+            $this->seedMaplewoodCommunications($maplewood, $tenantManager);
         }
     }
 
@@ -228,5 +233,93 @@ class CommunicationSeeder extends Seeder
                 'published_at' => Carbon::now()->subDays(1),
             ]
         );
+    }
+
+    protected function seedMaplewoodCommunications(School $school, TenantManager $tenantManager): void
+    {
+        $tenantManager->setTenant($school);
+
+        $school->update([
+            'telegram_bot_token' => 'mock_maplewood_bot_token',
+            'telegram_bot_username' => 'MaplewoodElementaryBot',
+        ]);
+
+        $admin = User::where('email', 'admin@maplewood.edu')->first();
+        $clara = User::where('email', 'teacher@maplewood.edu')->first();
+        $sarah = User::where('email', 'parent@maplewood.edu')->first();
+        $tommy = Student::where('school_id', $school->id)->where('admission_number', 'MAP-25-00101')->first();
+
+        // 1. School Announcement
+        Announcement::updateOrCreate(
+            [
+                'school_id' => $school->id,
+                'title' => 'Welcome to Maplewood Elementary - 2025/2026 School Year!',
+            ],
+            [
+                'author_id' => $admin?->id ?: 1,
+                'body' => 'Welcome Maplewood families! We are thrilled to start another wonderful year of elementary learning, friendship, and discovery.',
+                'audience_type' => 'all',
+                'priority' => 'normal',
+                'channels' => ['in_app', 'email'],
+                'published_at' => Carbon::now()->subDays(5),
+            ]
+        );
+
+        // 2. Direct message thread between Clara (teacher) and Sarah (parent)
+        if ($clara && $sarah && $tommy) {
+            $thread = CommunicationThread::updateOrCreate(
+                [
+                    'school_id' => $school->id,
+                    'student_id' => $tommy->id,
+                    'subject' => "Tommy's Reading Progress & Book Club",
+                ],
+                [
+                    'created_by' => $clara->id,
+                    'status' => 'active',
+                    'last_message_at' => Carbon::now()->subHours(2),
+                ]
+            );
+
+            CommunicationMessage::updateOrCreate(
+                [
+                    'school_id' => $school->id,
+                    'thread_id' => $thread->id,
+                    'sender_id' => $clara->id,
+                ],
+                [
+                    'body' => 'Hi Mrs. Vance, Tommy has been doing wonderfully in our morning reading circles. He chose Charlotte’s Web from the library this week!',
+                    'created_at' => Carbon::now()->subHours(5),
+                ]
+            );
+
+            CommunicationMessage::updateOrCreate(
+                [
+                    'school_id' => $school->id,
+                    'thread_id' => $thread->id,
+                    'sender_id' => $sarah->id,
+                ],
+                [
+                    'body' => 'Thank you Ms. Johnson! He is reading it every evening before bed. We really appreciate your encouragement.',
+                    'created_at' => Carbon::now()->subHours(2),
+                ]
+            );
+
+            // In-app notification for Sarah
+            InAppNotification::updateOrCreate(
+                [
+                    'school_id' => $school->id,
+                    'user_id' => $sarah->id,
+                    'title' => 'Welcome to Academic Year 2025/2026!',
+                ],
+                [
+                    'type' => 'announcement',
+                    'body' => 'Welcome Maplewood families to the 2025/2026 school year.',
+                    'data' => ['priority' => 'normal'],
+                    'read_at' => Carbon::now()->subDays(4),
+                ]
+            );
+        }
+
+        $tenantManager->clearTenant();
     }
 }

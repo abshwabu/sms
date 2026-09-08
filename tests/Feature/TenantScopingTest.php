@@ -115,7 +115,7 @@ class TenantScopingTest extends TestCase
             return Course::all();
         });
 
-        // 4 from Greenwood + 4 from Oakridge = 8 total
-        $this->assertCount(8, $allCourses);
+        // 4 from Greenwood + 4 from Oakridge + 5 from Maplewood = 13 total
+        $this->assertCount(13, $allCourses);
     }
 }

@@ -149,5 +149,56 @@ class TimetableSeeder extends Seeder
         }
 
         $tenantManager->clearTenant();
+
+        // 5. Maplewood Elementary Timetable (Room 103)
+        $maplewood = School::where('subdomain', 'maplewood')->first();
+        if ($maplewood) {
+            $tenantManager->setTenant($maplewood);
+
+            $mapleYear = AcademicYear::where('school_id', $maplewood->id)->where('name', '2025/2026')->first();
+            $room103 = Section::where('school_id', $maplewood->id)->where('name', 'Room 103')->first();
+            $clara = User::where('email', 'teacher@maplewood.edu')->first();
+
+            $subReading = Subject::where('school_id', $maplewood->id)->where('code', 'G3-ENG')->first();
+            $subMathElem = Subject::where('school_id', $maplewood->id)->where('code', 'G3-MATH')->first();
+            $subSciElem = Subject::where('school_id', $maplewood->id)->where('code', 'G3-SCI')->first();
+
+            if ($mapleYear && $room103 && $clara && $subReading && $subMathElem && $subSciElem) {
+                $elemSlots = [
+                    ['day' => DayOfWeek::MONDAY->value, 'period' => 1, 'subject' => $subReading->id, 'room' => 'Room 103', 'color' => '#6366f1'],
+                    ['day' => DayOfWeek::MONDAY->value, 'period' => 2, 'subject' => $subMathElem->id, 'room' => 'Room 103', 'color' => '#0ea5e9'],
+                    ['day' => DayOfWeek::MONDAY->value, 'period' => 3, 'subject' => $subSciElem->id, 'room' => 'Science Corner', 'color' => '#10b981'],
+                    ['day' => DayOfWeek::TUESDAY->value, 'period' => 1, 'subject' => $subMathElem->id, 'room' => 'Room 103', 'color' => '#0ea5e9'],
+                    ['day' => DayOfWeek::TUESDAY->value, 'period' => 2, 'subject' => $subReading->id, 'room' => 'Room 103', 'color' => '#6366f1'],
+                    ['day' => DayOfWeek::WEDNESDAY->value, 'period' => 1, 'subject' => $subReading->id, 'room' => 'Room 103', 'color' => '#6366f1'],
+                    ['day' => DayOfWeek::WEDNESDAY->value, 'period' => 2, 'subject' => $subSciElem->id, 'room' => 'Science Corner', 'color' => '#10b981'],
+                    ['day' => DayOfWeek::THURSDAY->value, 'period' => 1, 'subject' => $subMathElem->id, 'room' => 'Room 103', 'color' => '#0ea5e9'],
+                    ['day' => DayOfWeek::FRIDAY->value, 'period' => 1, 'subject' => $subReading->id, 'room' => 'Room 103', 'color' => '#6366f1'],
+                ];
+
+                foreach ($elemSlots as $s) {
+                    $times = TimetableService::defaultPeriodTimes($s['period']);
+                    TimetableSlot::updateOrCreate(
+                        [
+                            'school_id' => $maplewood->id,
+                            'academic_year_id' => $mapleYear->id,
+                            'section_id' => $room103->id,
+                            'day_of_week' => $s['day'],
+                            'period_number' => $s['period'],
+                        ],
+                        [
+                            'subject_id' => $s['subject'],
+                            'teacher_id' => $clara->id,
+                            'start_time' => $times['start'],
+                            'end_time' => $times['end'],
+                            'room' => $s['room'],
+                            'color' => $s['color'],
+                        ]
+                    );
+                }
+            }
+
+            $tenantManager->clearTenant();
+        }
     }
 }

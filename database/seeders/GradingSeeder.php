@@ -186,5 +186,105 @@ class GradingSeeder extends Seeder
         if ($sectionA && $fallTerm) {
             $reportCardService->updateSectionRanks($sectionA, $fallTerm);
         }
+
+        // 2. Maplewood Elementary Grading Setup
+        $maplewood = School::where('subdomain', 'maplewood')->first();
+        if ($maplewood) {
+            $tenantManager->setTenant($maplewood);
+
+            $claraTeacher = User::where('email', 'teacher@maplewood.edu')->first();
+            $tommyStudent = Student::where('school_id', $maplewood->id)->where('admission_number', 'MAP-25-00101')->first();
+            $g3 = GradeLevel::where('school_id', $maplewood->id)->where('code', 'G3')->first();
+            $fallTermMaple = Term::where('school_id', $maplewood->id)->where('name', 'Fall Term')->first();
+            $room103 = Section::where('school_id', $maplewood->id)->where('name', 'Room 103')->first();
+
+            $mapleScale = GradingScale::updateOrCreate(
+                ['school_id' => $maplewood->id, 'name' => 'Elementary Standards Scale'],
+                [
+                    'scale_type' => 'letter',
+                    'is_default' => true,
+                    'rules' => [
+                        ['min_score' => 90, 'max_score' => 100, 'grade' => 'A', 'gpa_point' => 4.0, 'description' => 'Exceeds Grade Standards'],
+                        ['min_score' => 80, 'max_score' => 89.99, 'grade' => 'B', 'gpa_point' => 3.0, 'description' => 'Meets Grade Standards'],
+                        ['min_score' => 70, 'max_score' => 79.99, 'grade' => 'C', 'gpa_point' => 2.0, 'description' => 'Approaching Standards'],
+                        ['min_score' => 60, 'max_score' => 69.99, 'grade' => 'D', 'gpa_point' => 1.0, 'description' => 'Needs Support'],
+                        ['min_score' => 0, 'max_score' => 59.99, 'grade' => 'F', 'gpa_point' => 0.0, 'description' => 'Unsatisfactory'],
+                    ],
+                ]
+            );
+
+            if ($g3 && $fallTermMaple) {
+                $subReading = Subject::updateOrCreate(
+                    ['school_id' => $maplewood->id, 'grade_level_id' => $g3->id, 'code' => 'G3-ENG'],
+                    ['name' => 'Elementary Reading & Language', 'credit_hours' => 1.0, 'description' => 'Reading comprehension and literacy']
+                );
+
+                $subMathElem = Subject::updateOrCreate(
+                    ['school_id' => $maplewood->id, 'grade_level_id' => $g3->id, 'code' => 'G3-MATH'],
+                    ['name' => 'Elementary Mathematics', 'credit_hours' => 1.0, 'description' => 'Foundational arithmetic and geometry']
+                );
+
+                $subSciElem = Subject::updateOrCreate(
+                    ['school_id' => $maplewood->id, 'grade_level_id' => $g3->id, 'code' => 'G3-SCI'],
+                    ['name' => 'Nature & Science Discovery', 'credit_hours' => 1.0, 'description' => 'Hands-on natural science exploration']
+                );
+
+                $mapleMidterm = Exam::updateOrCreate(
+                    ['school_id' => $maplewood->id, 'term_id' => $fallTermMaple->id, 'grade_level_id' => $g3->id, 'name' => 'Mid-Term Review'],
+                    [
+                        'academic_year_id' => $fallTermMaple->academic_year_id,
+                        'type' => 'midterm',
+                        'weight' => 40.00,
+                        'max_marks' => 100.00,
+                        'date' => '2025-10-22',
+                        'status' => 'completed',
+                    ]
+                );
+
+                $mapleFinal = Exam::updateOrCreate(
+                    ['school_id' => $maplewood->id, 'term_id' => $fallTermMaple->id, 'grade_level_id' => $g3->id, 'name' => 'Fall Term Project'],
+                    [
+                        'academic_year_id' => $fallTermMaple->academic_year_id,
+                        'type' => 'final',
+                        'weight' => 60.00,
+                        'max_marks' => 100.00,
+                        'date' => '2025-12-10',
+                        'status' => 'completed',
+                    ]
+                );
+
+                if ($tommyStudent) {
+                    $tommyGrades = [
+                        [$subReading->id, $mapleMidterm->id, 88.0],
+                        [$subReading->id, $mapleFinal->id, 92.0],
+                        [$subMathElem->id, $mapleMidterm->id, 85.0],
+                        [$subMathElem->id, $mapleFinal->id, 89.0],
+                        [$subSciElem->id, $mapleMidterm->id, 94.0],
+                        [$subSciElem->id, $mapleFinal->id, 96.0],
+                    ];
+
+                    foreach ($tommyGrades as [$subId, $exId, $marks]) {
+                        Grade::updateOrCreate(
+                            ['school_id' => $maplewood->id, 'student_id' => $tommyStudent->id, 'subject_id' => $subId, 'exam_id' => $exId],
+                            ['section_id' => $room103?->id, 'marks_obtained' => $marks, 'max_marks' => 100.00, 'entered_by' => $claraTeacher?->id]
+                        );
+                    }
+
+                    $tommyRc = $reportCardService->aggregateStudentReportCard($tommyStudent, $fallTermMaple, $mapleScale, $claraTeacher);
+                    $tommyRc->update([
+                        'homeroom_remarks' => 'Tommy is an inquisitive student who demonstrates excellent progress in reading and science.',
+                        'principal_remarks' => 'A pleasure to have at Maplewood Elementary.',
+                        'status' => 'published',
+                        'published_at' => now(),
+                    ]);
+                }
+
+                if ($room103) {
+                    $reportCardService->updateSectionRanks($room103, $fallTermMaple);
+                }
+            }
+
+            $tenantManager->clearTenant();
+        }
     }
 }

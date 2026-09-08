@@ -23,6 +23,7 @@ class TransportSeeder extends Seeder
 
         $greenwood = School::where('subdomain', 'greenwood')->first();
         $oakridge = School::where('subdomain', 'oakridge')->first();
+        $maplewood = School::where('subdomain', 'maplewood')->first();
 
         if ($greenwood) {
             $this->seedGreenwoodTransport($greenwood, $tenantManager);
@@ -30,6 +31,10 @@ class TransportSeeder extends Seeder
 
         if ($oakridge) {
             $this->seedOakridgeTransport($oakridge, $tenantManager);
+        }
+
+        if ($maplewood) {
+            $this->seedMaplewoodTransport($maplewood, $tenantManager);
         }
     }
 
@@ -281,5 +286,73 @@ class TransportSeeder extends Seeder
                 ]
             );
         }
+    }
+
+    protected function seedMaplewoodTransport(School $school, TenantManager $tenantManager): void
+    {
+        $tenantManager->setTenant($school);
+
+        $academicYear = AcademicYear::where('school_id', $school->id)
+            ->where('is_active', true)
+            ->first() ?? AcademicYear::where('school_id', $school->id)->first();
+
+        $route = TransportRoute::updateOrCreate(
+            [
+                'school_id' => $school->id,
+                'name' => 'Route 10 - Maplewood Yellow Bus',
+            ],
+            [
+                'vehicle_info' => 'Mini Bus #10 (Capacity: 25)',
+                'driver_name' => 'Otto Mann (Elementary Route)',
+                'driver_contact' => '+1 (555) 333-2211',
+                'description' => 'Neighborhood morning pickup and afternoon dropoff for elementary grades.',
+                'status' => 'active',
+            ]
+        );
+
+        $stop1 = TransportStop::updateOrCreate(
+            [
+                'transport_route_id' => $route->id,
+                'stop_name' => 'Elm Street & 5th Ave',
+            ],
+            [
+                'school_id' => $school->id,
+                'pickup_time' => '07:45:00',
+                'dropoff_time' => '15:15:00',
+                'sequence' => 1,
+            ]
+        );
+
+        $stop2 = TransportStop::updateOrCreate(
+            [
+                'transport_route_id' => $route->id,
+                'stop_name' => 'Maplewood Main Entrance',
+            ],
+            [
+                'school_id' => $school->id,
+                'pickup_time' => '08:05:00',
+                'dropoff_time' => '15:00:00',
+                'sequence' => 2,
+            ]
+        );
+
+        $tommy = Student::where('school_id', $school->id)->where('admission_number', 'MAP-25-00101')->first();
+        if ($tommy) {
+            StudentTransport::updateOrCreate(
+                [
+                    'school_id' => $school->id,
+                    'student_id' => $tommy->id,
+                ],
+                [
+                    'transport_route_id' => $route->id,
+                    'transport_stop_id' => $stop1->id,
+                    'academic_year_id' => $academicYear?->id,
+                    'status' => 'active',
+                    'notes' => 'Elementary bus rider (Morning & Afternoon)',
+                ]
+            );
+        }
+
+        $tenantManager->clearTenant();
     }
 }

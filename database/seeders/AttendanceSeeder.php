@@ -124,5 +124,76 @@ class AttendanceSeeder extends Seeder
 
             $tenantManager->clearTenant();
         }
+
+        // 2. Maplewood Elementary School Attendance & Calendar
+        $maplewood = School::where('subdomain', 'maplewood')->first();
+        if ($maplewood) {
+            $tenantManager->setTenant($maplewood);
+
+            $mapleYear = AcademicYear::where('school_id', $maplewood->id)
+                ->where('name', '2025/2026')
+                ->first();
+
+            $holidays = [
+                ['date' => '2025-09-01', 'description' => 'Labor Day'],
+                ['date' => '2025-11-27', 'description' => 'Thanksgiving Day'],
+                ['date' => '2025-12-25', 'description' => 'Winter Break'],
+            ];
+
+            foreach ($holidays as $h) {
+                SchoolCalendar::updateOrCreate(
+                    ['school_id' => $maplewood->id, 'date' => $h['date']],
+                    [
+                        'academic_year_id' => $mapleYear?->id,
+                        'day_type' => 'holiday',
+                        'is_school_day' => false,
+                        'description' => $h['description'],
+                    ]
+                );
+            }
+
+            $room103 = Section::where('school_id', $maplewood->id)->where('name', 'Room 103')->first();
+            $claraTeacher = User::where('email', 'teacher@maplewood.edu')->first();
+            $tommy = Student::where('school_id', $maplewood->id)->where('admission_number', 'MAP-25-00101')->first();
+            $maya = Student::where('school_id', $maplewood->id)->where('admission_number', 'MAP-25-00102')->first();
+
+            if ($room103 && $claraTeacher && $tommy && $maya) {
+                $dates = [
+                    '2025-09-02' => [
+                        $tommy->id => ['status' => AttendanceStatus::PRESENT->value, 'remarks' => null],
+                        $maya->id => ['status' => AttendanceStatus::PRESENT->value, 'remarks' => null],
+                    ],
+                    '2025-09-03' => [
+                        $tommy->id => ['status' => AttendanceStatus::PRESENT->value, 'remarks' => null],
+                        $maya->id => ['status' => AttendanceStatus::LATE->value, 'remarks' => 'School bus delay'],
+                    ],
+                    '2025-09-04' => [
+                        $tommy->id => ['status' => AttendanceStatus::PRESENT->value, 'remarks' => null],
+                        $maya->id => ['status' => AttendanceStatus::PRESENT->value, 'remarks' => null],
+                    ],
+                ];
+
+                foreach ($dates as $date => $roster) {
+                    foreach ($roster as $studentId => $data) {
+                        AttendanceRecord::updateOrCreate(
+                            [
+                                'school_id' => $maplewood->id,
+                                'student_id' => $studentId,
+                                'date' => $date,
+                            ],
+                            [
+                                'section_id' => $room103->id,
+                                'academic_year_id' => $room103->academic_year_id,
+                                'status' => $data['status'],
+                                'marked_by' => $claraTeacher->id,
+                                'remarks' => $data['remarks'],
+                            ]
+                        );
+                    }
+                }
+            }
+
+            $tenantManager->clearTenant();
+        }
     }
 }
