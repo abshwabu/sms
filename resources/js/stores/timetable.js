@@ -8,8 +8,11 @@ export const useTimetableStore = defineStore('timetable', {
         teachers: [],
         selectedSectionId: null,
         selectedTeacherId: null,
+        selectedStudentId: null,
+        students: [],
         sectionTimetable: null,
         teacherTimetable: null,
+        studentTimetable: null,
         loading: false,
         actionLoading: false,
         error: null,
@@ -94,6 +97,38 @@ export const useTimetableStore = defineStore('timetable', {
             } catch (err) {
                 this.error = err.response?.data?.error?.message || 'Failed to load teacher timetable.';
                 this.teacherTimetable = null;
+                throw err;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async fetchStudents() {
+            try {
+                const res = await axios.get('/students');
+                this.students = res.data.data || [];
+                if (this.students.length > 0 && !this.selectedStudentId) {
+                    this.selectedStudentId = this.students[0].id;
+                }
+                return this.students;
+            } catch (err) {
+                return [];
+            }
+        },
+
+        async fetchStudentTimetable(studentId = null) {
+            this.loading = true;
+            this.error = null;
+            this.conflictDetails = null;
+            try {
+                const url = studentId ? `/students/${studentId}/timetable` : '/student/timetable';
+                const res = await axios.get(url);
+                this.studentTimetable = res.data.data;
+                if (studentId) this.selectedStudentId = studentId;
+                return res.data.data;
+            } catch (err) {
+                this.error = err.response?.data?.error?.message || 'Failed to load student timetable.';
+                this.studentTimetable = null;
                 throw err;
             } finally {
                 this.loading = false;

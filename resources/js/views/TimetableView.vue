@@ -30,6 +30,13 @@
         >
           👩‍🏫 Teacher Schedule
         </button>
+        <button
+          @click="switchToStudentMode"
+          class="px-3.5 py-1.5 text-xs font-semibold rounded-lg transition"
+          :class="activeMode === 'student' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+        >
+          🎓 Student Schedule (Electives)
+        </button>
       </div>
     </div>
 
@@ -248,6 +255,114 @@
       </div>
     </div>
 
+    <!-- MODE 3: STUDENT TIMETABLE (ELECTIVES MERGED) -->
+    <div v-if="activeMode === 'student'" class="space-y-6">
+      <!-- Selector & Stats Bar -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-slate-400 font-semibold mb-1">Select Student</label>
+            <select
+              v-model="selectedStudentId"
+              @change="onStudentChange"
+              class="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none min-w-[260px]"
+            >
+              <option v-for="std in timetableStore.students" :key="std.id" :value="std.id">
+                {{ std.user?.name || std.admission_number }} ({{ std.admission_number }})
+              </option>
+            </select>
+          </div>
+
+          <div v-if="timetableStore.studentTimetable?.section" class="text-xs text-slate-400 border-l border-slate-800 pl-4">
+            <div><span class="text-slate-300 font-medium">Section:</span> {{ timetableStore.studentTimetable.section.name }} &bull; {{ timetableStore.studentTimetable.section.grade_level }}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">Homeroom: {{ timetableStore.studentTimetable.section.homeroom_teacher || 'Unassigned' }}</div>
+          </div>
+        </div>
+
+        <!-- Elective Stats Badge -->
+        <div v-if="timetableStore.studentTimetable?.stats" class="flex items-center gap-3">
+          <div class="px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700/60 text-center">
+            <div class="text-[10px] font-mono text-slate-400 uppercase">Core Slots</div>
+            <div class="text-base font-bold text-white">{{ timetableStore.studentTimetable.stats.core_slots_count }}</div>
+          </div>
+          <div class="px-3 py-2 rounded-xl bg-purple-950/40 border border-purple-500/40 text-center">
+            <div class="text-[10px] font-mono text-purple-300 uppercase">Elective Slots</div>
+            <div class="text-base font-bold text-purple-300">{{ timetableStore.studentTimetable.stats.elective_slots_count }}</div>
+          </div>
+          <div class="px-3 py-2 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-center">
+            <div class="text-[10px] font-mono text-indigo-300 uppercase">Electives Chosen</div>
+            <div class="text-base font-bold text-indigo-300">{{ timetableStore.studentTimetable.stats.enrolled_electives_count }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly Matrix Grid -->
+      <div v-if="timetableStore.studentTimetable" class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase tracking-wider font-semibold">
+                <th class="p-3 w-32 border-r border-slate-800 text-center">Period / Time</th>
+                <th v-for="day in timetableStore.studentTimetable.days" :key="day" class="p-3 text-center min-w-[150px] border-r border-slate-800 last:border-r-0">
+                  {{ formatDay(day) }}
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              <tr v-for="period in timetableStore.studentTimetable.periods" :key="period.period_number">
+                <td class="p-3 bg-slate-950/40 border-r border-slate-800 text-center">
+                  <div class="font-bold text-white text-sm">Period {{ period.period_number }}</div>
+                  <div class="font-mono text-[10px] text-slate-400 mt-0.5">{{ period.times.start }} - {{ period.times.end }}</div>
+                </td>
+
+                <td
+                  v-for="day in timetableStore.studentTimetable.days"
+                  :key="day"
+                  class="p-2.5 border-r border-slate-800 last:border-r-0 align-top"
+                >
+                  <div
+                    v-if="timetableStore.studentTimetable.grid[day]?.[period.period_number]"
+                    class="p-2.5 rounded-xl border space-y-1.5 shadow-sm"
+                    :class="timetableStore.studentTimetable.grid[day][period.period_number].subject?.is_elective
+                      ? 'border-purple-500/40 bg-purple-950/20'
+                      : 'border-slate-700/60 bg-slate-800/50'"
+                  >
+                    <div class="flex items-center justify-between">
+                      <span class="font-bold text-xs" :class="timetableStore.studentTimetable.grid[day][period.period_number].subject?.is_elective ? 'text-purple-300' : 'text-slate-200'">
+                        {{ timetableStore.studentTimetable.grid[day][period.period_number].subject?.name }}
+                      </span>
+                      <span
+                        v-if="timetableStore.studentTimetable.grid[day][period.period_number].subject?.is_elective"
+                        class="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold"
+                      >
+                        ELECTIVE
+                      </span>
+                    </div>
+
+                    <div class="text-[11px] text-slate-300 flex items-center justify-between">
+                      <span>👤 {{ timetableStore.studentTimetable.grid[day][period.period_number].teacher?.name || 'Teacher TBD' }}</span>
+                      <span v-if="timetableStore.studentTimetable.grid[day][period.period_number].section_id !== timetableStore.studentTimetable.section?.id" class="text-[10px] text-amber-400 font-mono">
+                        (Cross-Section)
+                      </span>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1 border-t border-slate-800/80">
+                      <span>📍 {{ timetableStore.studentTimetable.grid[day][period.period_number].room || 'Room TBA' }}</span>
+                      <span class="text-[9px] px-1 py-0.2 rounded bg-slate-800">{{ timetableStore.studentTimetable.grid[day][period.period_number].subject?.code }}</span>
+                    </div>
+                  </div>
+
+                  <div v-else class="h-16 rounded-xl border border-dashed border-slate-850 flex items-center justify-center text-slate-700 text-[10px]">
+                    Free Period
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: ADD TIMETABLE SLOT -->
     <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -357,6 +472,7 @@ const timetableStore = useTimetableStore();
 const activeMode = ref('section');
 const selectedSectionId = ref(null);
 const selectedTeacherId = ref(null);
+const selectedStudentId = ref(null);
 
 const showAddModal = ref(false);
 const slotForm = ref({
@@ -402,6 +518,25 @@ async function switchToTeacherMode() {
     activeMode.value = 'teacher';
     if (selectedTeacherId.value) {
         await timetableStore.fetchTeacherTimetable(selectedTeacherId.value);
+    }
+}
+
+async function onStudentChange() {
+    if (selectedStudentId.value) {
+        await timetableStore.fetchStudentTimetable(selectedStudentId.value);
+    }
+}
+
+async function switchToStudentMode() {
+    activeMode.value = 'student';
+    if (!timetableStore.students.length) {
+        await timetableStore.fetchStudents();
+    }
+    if (timetableStore.students.length && !selectedStudentId.value) {
+        selectedStudentId.value = timetableStore.students[0].id;
+    }
+    if (selectedStudentId.value) {
+        await timetableStore.fetchStudentTimetable(selectedStudentId.value);
     }
 }
 
