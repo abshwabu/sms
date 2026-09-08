@@ -9,6 +9,7 @@ enum RoleEnum: string
     case TEACHER = 'teacher';
     case STUDENT = 'student';
     case PARENT = 'parent';
+    case LIBRARIAN = 'librarian';
 
     /**
      * Get all available role values.

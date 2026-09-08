@@ -28,7 +28,9 @@ class RequireRole
             return $next($request);
         }
 
-        $hasRole = in_array($user->role, $roles, true) || $user->hasAnyRole($roles);
+        $hasRole = in_array($user->role, $roles, true) 
+            || $user->hasAnyRole($roles)
+            || (in_array('librarian', $roles, true) && $user->isLibrarian());
 
         if (! $hasRole) {
             return ApiResponse::error(

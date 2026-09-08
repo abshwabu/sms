@@ -12,12 +12,18 @@ import ParentPortalView from '../views/ParentPortalView.vue';
 import AttendanceView from '../views/AttendanceView.vue';
 import GradingView from '../views/GradingView.vue';
 import TimetableView from '../views/TimetableView.vue';
+import LibraryView from '../views/LibraryView.vue';
 
 const routes = [
     {
         path: '/',
         name: 'dashboard',
         component: DashboardView,
+    },
+    {
+        path: '/library',
+        name: 'library',
+        component: LibraryView,
     },
     {
         path: '/timetable',

@@ -71,6 +71,16 @@ class Staff extends Model
             ->withTimestamps();
     }
 
+    public function bookLoans(): HasMany
+    {
+        return $this->hasMany(BookLoan::class)->orderBy('borrowed_at', 'desc');
+    }
+
+    public function activeBookLoans(): HasMany
+    {
+        return $this->hasMany(BookLoan::class)->whereNull('returned_at')->orderBy('due_at', 'asc');
+    }
+
     /**
      * Get all unique sections assigned to this staff member (as homeroom or subject teacher).
      */

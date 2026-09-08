@@ -64,6 +64,16 @@ class Student extends Model
         return $this->hasMany(AttendanceRecord::class)->orderBy('date', 'desc');
     }
 
+    public function bookLoans(): HasMany
+    {
+        return $this->hasMany(BookLoan::class)->orderBy('borrowed_at', 'desc');
+    }
+
+    public function activeBookLoans(): HasMany
+    {
+        return $this->hasMany(BookLoan::class)->whereNull('returned_at')->orderBy('due_at', 'asc');
+    }
+
     /**
      * Scope search across student name, email, and admission number.
      */

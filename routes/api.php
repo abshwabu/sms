@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\GradeLevelController;
 use App\Http\Controllers\Api\GradingController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\InvitationController;
+use App\Http\Controllers\Api\LibraryController;
 use App\Http\Controllers\Api\ParentManagementController;
 use App\Http\Controllers\Api\ParentPortalController;
 use App\Http\Controllers\Api\ReportCardController;
@@ -118,6 +119,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/student/report-cards', [ReportCardController::class, 'studentReportCards'])->name('api.student.report-cards');
         Route::get('/student/report-cards/{reportCard}/pdf', [ReportCardController::class, 'studentDownloadPdf'])->name('api.student.report-cards.pdf');
         Route::get('/student/timetable', [TimetableController::class, 'getMyStudentTimetable'])->name('api.student.timetable');
+        Route::get('/student/borrowed-books', [LibraryController::class, 'myBorrowedBooks'])->name('api.student.borrowed-books');
 
         // Parent Portal (Child switching & dashboard access)
         Route::prefix('parent')->group(function () {
@@ -127,6 +129,25 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/children/{student}/report-cards', [ReportCardController::class, 'parentChildReportCards'])->name('api.parent.child-report-cards');
             Route::get('/children/{student}/report-cards/{reportCard}/pdf', [ReportCardController::class, 'parentDownloadChildPdf'])->name('api.parent.child-report-cards.pdf');
             Route::get('/children/{student}/timetable', [TimetableController::class, 'getParentChildTimetable'])->name('api.parent.child-timetable');
+            Route::get('/children/{student}/borrowed-books', [LibraryController::class, 'childBorrowedBooks'])->name('api.parent.child-borrowed-books');
+        });
+
+        // Library Catalog (Read-only for all school members)
+        Route::get('/library/books', [LibraryController::class, 'books'])->name('api.library.books.index');
+        Route::get('/library/books/{book}', [LibraryController::class, 'showBook'])->name('api.library.books.show');
+
+        // Library Management & Circulation (Librarian, School Admin, Super Admin)
+        Route::middleware('role:school_admin,librarian,super_admin')->prefix('library')->group(function () {
+            Route::get('/summary', [LibraryController::class, 'summary'])->name('api.library.summary');
+            Route::post('/books', [LibraryController::class, 'storeBook'])->name('api.library.books.store');
+            Route::put('/books/{book}', [LibraryController::class, 'updateBook'])->name('api.library.books.update');
+            Route::delete('/books/{book}', [LibraryController::class, 'destroyBook'])->name('api.library.books.destroy');
+            Route::get('/loans', [LibraryController::class, 'loans'])->name('api.library.loans.index');
+            Route::post('/loans/checkout', [LibraryController::class, 'checkout'])->name('api.library.loans.checkout');
+            Route::post('/loans/{loan}/checkin', [LibraryController::class, 'checkin'])->name('api.library.loans.checkin');
+            Route::get('/fines', [LibraryController::class, 'fines'])->name('api.library.fines.index');
+            Route::post('/fines/{fine}/pay', [LibraryController::class, 'payFine'])->name('api.library.fines.pay');
+            Route::post('/fines/{fine}/waive', [LibraryController::class, 'waiveFine'])->name('api.library.fines.waive');
         });
 
         // School Calendar (Read)

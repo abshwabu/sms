@@ -107,6 +107,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Library book loans borrowed by or associated with this user.
+     */
+    public function bookLoans(): HasMany
+    {
+        return $this->hasMany(BookLoan::class, 'user_id');
+    }
+
+    /**
      * Check if the user is a platform-wide Super Admin.
      */
     public function isSuperAdmin(): bool
@@ -145,6 +153,17 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isParent(): bool
     {
         return $this->role === RoleEnum::PARENT->value || $this->hasRole(RoleEnum::PARENT->value);
+    }
+
+    /**
+     * Check if the user is a Librarian or has library management rights.
+     */
+    public function isLibrarian(): bool
+    {
+        return $this->role === RoleEnum::LIBRARIAN->value
+            || $this->hasRole(RoleEnum::LIBRARIAN->value)
+            || ($this->staff && str_contains(strtolower($this->staff->role_title ?? ''), 'librarian'))
+            || $this->can('manage-library');
     }
 
     /**

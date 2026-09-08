@@ -51,6 +51,10 @@ return Application::configure(basePath: dirname(__DIR__))
             return ApiResponse::error($e->getMessage(), 'TIMETABLE_CONFLICT', 422, $e->getDetails());
         });
 
+        $exceptions->render(function (\App\Exceptions\BookUnavailableException $e, Request $request) {
+            return ApiResponse::error($e->getMessage(), 'BOOK_UNAVAILABLE', 422);
+        });
+
         $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return ApiResponse::validationError($e->errors(), $e->getMessage());

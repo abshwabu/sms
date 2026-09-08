@@ -34,6 +34,12 @@
                 Timetable
               </router-link>
               <router-link 
+                to="/library" 
+                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
+              >
+                Library
+              </router-link>
+              <router-link 
                 to="/grading" 
                 class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
               >

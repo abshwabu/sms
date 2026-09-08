@@ -517,6 +517,75 @@
           </div>
         </div>
 
+        <!-- Library Borrowed Books (Prompt 10) -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>Borrowed Library Books &amp; Circulation</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">
+                  Catalog &amp; Loans
+                </span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Current borrowed books, return due dates, and circulation fine status.
+              </p>
+            </div>
+            <span v-if="childLibrary?.active_loans?.length" class="text-xs text-slate-400">
+              <strong class="text-white">{{ childLibrary.active_loans.length }}</strong> active loan(s)
+            </span>
+          </div>
+
+          <div v-if="libraryLoading" class="py-4 text-center text-xs text-slate-500">
+            Loading child library records...
+          </div>
+
+          <div v-else-if="childLibrary?.active_loans?.length > 0" class="space-y-3">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 font-medium">
+                  <tr>
+                    <th class="p-2.5">Book Title</th>
+                    <th class="p-2.5">Author &amp; Category</th>
+                    <th class="p-2.5">Borrowed Date</th>
+                    <th class="p-2.5">Due Date</th>
+                    <th class="p-2.5 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr v-for="loan in childLibrary.active_loans" :key="loan.id" class="hover:bg-slate-950/40">
+                    <td class="p-2.5 font-semibold text-white">{{ loan.book?.title }}</td>
+                    <td class="p-2.5 text-slate-400">{{ loan.book?.author }} ({{ loan.book?.category }})</td>
+                    <td class="p-2.5 font-mono text-slate-400">{{ formatDate(loan.borrowed_at) }}</td>
+                    <td class="p-2.5 font-mono" :class="loan.is_overdue ? 'text-rose-400 font-bold' : 'text-slate-300'">
+                      {{ formatDate(loan.due_at) }}
+                      <span v-if="loan.is_overdue" class="text-[10px] text-rose-400 block font-semibold">
+                        ⚠️ {{ loan.days_overdue }} days overdue
+                      </span>
+                    </td>
+                    <td class="p-2.5 text-right">
+                      <span
+                        class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase"
+                        :class="loan.is_overdue ? 'bg-rose-500/10 text-rose-400' : 'bg-blue-500/10 text-blue-400'"
+                      >
+                        {{ loan.is_overdue ? 'OVERDUE' : 'BORROWED' }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div v-else class="py-6 text-center bg-slate-950/40 rounded-lg border border-dashed border-slate-800/80">
+            <div class="text-2xl mb-1">📚</div>
+            <div class="text-xs font-semibold text-slate-300">No Currently Borrowed Books</div>
+            <p class="text-[11px] text-slate-500 mt-1 max-w-sm mx-auto">
+              This student has no outstanding library loans or due dates at this time.
+            </p>
+          </div>
+        </div>
+
         <!-- Enrollment History / Timeline Card -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
           <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
@@ -1138,6 +1207,31 @@ async function loadChildTimetable(childId) {
     }
 }
 
+const childLibrary = ref(null);
+const libraryLoading = ref(false);
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+}
+
+async function loadChildLibrary(childId) {
+    if (!childId) return;
+    libraryLoading.value = true;
+    try {
+        const res = await axios.get(`/parent/children/${childId}/borrowed-books`);
+        childLibrary.value = res.data.data;
+    } catch (e) {
+        childLibrary.value = null;
+    } finally {
+        libraryLoading.value = false;
+    }
+}
+
 async function downloadChildPdf(rc) {
     const activeKid = parentStore.activeChild;
     if (!activeKid || !rc) return;
@@ -1164,6 +1258,7 @@ watch(() => parentStore.activeChild, (newChild) => {
         loadChildAttendance(newChild.id);
         loadChildReportCards(newChild.id);
         loadChildTimetable(newChild.id);
+        loadChildLibrary(newChild.id);
     }
 }, { immediate: true });
 
@@ -1175,6 +1270,7 @@ onMounted(async () => {
             loadChildAttendance(kids[0].id);
             loadChildReportCards(kids[0].id);
             loadChildTimetable(kids[0].id);
+            loadChildLibrary(kids[0].id);
         }
     } else if (authStore.isSchoolAdmin) {
         activeTab.value = 'directory';
@@ -1186,6 +1282,7 @@ onMounted(async () => {
             loadChildAttendance(kids[0].id);
             loadChildReportCards(kids[0].id);
             loadChildTimetable(kids[0].id);
+            loadChildLibrary(kids[0].id);
         }
     }
 });

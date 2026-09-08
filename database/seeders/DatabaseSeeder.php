@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             AttendanceSeeder::class,
             GradingSeeder::class,
             TimetableSeeder::class,
+            LibrarySeeder::class,
         ]);
     }
 }
