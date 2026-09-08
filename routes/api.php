@@ -6,10 +6,12 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClaimCodeController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\GradeLevelController;
+use App\Http\Controllers\Api\GradingController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\ParentManagementController;
 use App\Http\Controllers\Api\ParentPortalController;
+use App\Http\Controllers\Api\ReportCardController;
 use App\Http\Controllers\Api\SchoolAdminController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SectionController;
@@ -72,6 +74,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/sections/{section}/attendance-summary', [AttendanceController::class, 'getSectionAttendanceSummary'])->name('api.sections.attendance.summary');
         Route::post('/sections/{section}/grades', [SectionController::class, 'recordGrades'])->name('api.sections.grades');
 
+        // Grading, Exams, Grading Scales & Report Cards
+        Route::get('/subjects', [GradingController::class, 'indexSubjects'])->name('api.subjects.index');
+        Route::post('/subjects', [GradingController::class, 'storeSubject'])->name('api.subjects.store');
+        Route::get('/exams', [GradingController::class, 'indexExams'])->name('api.exams.index');
+        Route::post('/exams', [GradingController::class, 'storeExam'])->name('api.exams.store');
+        Route::get('/grading-scales', [GradingController::class, 'indexGradingScales'])->name('api.grading-scales.index');
+        Route::post('/grading-scales', [GradingController::class, 'storeGradingScale'])->name('api.grading-scales.store');
+
+        Route::get('/sections/{section}/subjects/{subject}/grades', [GradingController::class, 'getSectionSubjectGrades'])->name('api.sections.subjects.grades.get');
+        Route::post('/grades', [GradingController::class, 'recordGrades'])->name('api.grades.store');
+
+        Route::get('/sections/{section}/report-cards', [ReportCardController::class, 'getSectionReportCards'])->name('api.sections.report-cards.index');
+        Route::post('/sections/{section}/report-cards/publish', [ReportCardController::class, 'bulkPublishSection'])->name('api.sections.report-cards.bulk-publish');
+        Route::get('/report-cards/{reportCard}', [ReportCardController::class, 'show'])->name('api.report-cards.show');
+        Route::post('/report-cards/{reportCard}/publish', [ReportCardController::class, 'publish'])->name('api.report-cards.publish');
+        Route::get('/report-cards/{reportCard}/pdf', [ReportCardController::class, 'downloadPdf'])->name('api.report-cards.pdf');
+
         // Staff Directory (Read)
         Route::get('/staff', [StaffController::class, 'index'])->name('api.staff.index');
         Route::get('/staff/{staff}', [StaffController::class, 'show'])->name('api.staff.show');
@@ -84,12 +103,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Student Self View
         Route::get('/student/attendance', [AttendanceController::class, 'getMyStudentAttendance'])->name('api.student.my-attendance');
+        Route::get('/student/report-cards', [ReportCardController::class, 'studentReportCards'])->name('api.student.report-cards');
+        Route::get('/student/report-cards/{reportCard}/pdf', [ReportCardController::class, 'studentDownloadPdf'])->name('api.student.report-cards.pdf');
 
         // Parent Portal (Child switching & dashboard access)
         Route::prefix('parent')->group(function () {
             Route::get('/children', [ParentPortalController::class, 'children'])->name('api.parent.children');
             Route::get('/children/{student}/dashboard', [ParentPortalController::class, 'childDashboard'])->name('api.parent.child-dashboard');
             Route::get('/children/{student}/attendance', [AttendanceController::class, 'getParentChildAttendance'])->name('api.parent.child-attendance');
+            Route::get('/children/{student}/report-cards', [ReportCardController::class, 'parentChildReportCards'])->name('api.parent.child-report-cards');
+            Route::get('/children/{student}/report-cards/{reportCard}/pdf', [ReportCardController::class, 'parentDownloadChildPdf'])->name('api.parent.child-report-cards.pdf');
         });
 
         // School Calendar (Read)

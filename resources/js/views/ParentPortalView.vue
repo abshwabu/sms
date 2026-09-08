@@ -383,6 +383,82 @@
           </div>
         </div>
 
+        <!-- Official Report Cards & Exam Results (Prompt 8) -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>Official Term Report Cards &amp; Exam Results</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
+                  Verified &amp; Published
+                </span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Download verified academic report cards in PDF format matching the school's configured grading scale.
+              </p>
+            </div>
+            <span class="text-xs text-slate-500">
+              Only published records are available
+            </span>
+          </div>
+
+          <div v-if="reportCardsLoading" class="py-4 text-center text-xs text-slate-500">
+            Loading academic report cards...
+          </div>
+
+          <div v-else-if="childReportCards.length > 0" class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-950 text-slate-400 font-medium border-b border-slate-800">
+                <tr>
+                  <th class="p-3">Academic Term</th>
+                  <th class="p-3">Academic Year</th>
+                  <th class="p-3">Average %</th>
+                  <th class="p-3">Overall Grade</th>
+                  <th class="p-3">GPA</th>
+                  <th class="p-3">Class Rank</th>
+                  <th class="p-3 text-right">Official Document</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                <tr v-for="rc in childReportCards" :key="rc.id" class="hover:bg-slate-950/40">
+                  <td class="p-3 font-semibold text-white">{{ rc.term?.name || 'Term' }}</td>
+                  <td class="p-3 font-mono text-slate-400">{{ rc.academic_year?.name || '-' }}</td>
+                  <td class="p-3 font-bold font-mono text-white">{{ rc.average_percentage }}%</td>
+                  <td class="p-3">
+                    <span class="font-bold text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      {{ rc.overall_grade || 'N/A' }}
+                    </span>
+                  </td>
+                  <td class="p-3 font-mono">{{ rc.gpa ? rc.gpa.toFixed(2) : '-' }}</td>
+                  <td class="p-3">
+                    <span v-if="rc.rank_in_section" class="px-2 py-0.5 rounded bg-slate-800 text-indigo-300 font-mono text-[11px]">
+                      #{{ rc.rank_in_section }} / {{ rc.total_students_in_section || '-' }}
+                    </span>
+                    <span v-else class="text-slate-500">-</span>
+                  </td>
+                  <td class="p-3 text-right">
+                    <button
+                      @click="downloadChildPdf(rc)"
+                      :disabled="downloadingCardId === rc.id"
+                      class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-sm"
+                    >
+                      <span>{{ downloadingCardId === rc.id ? 'Generating...' : '📄 Download PDF' }}</span>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-else class="py-6 text-center bg-slate-950/40 rounded-lg border border-dashed border-slate-800/80">
+            <div class="text-2xl mb-1">📜</div>
+            <div class="text-xs font-semibold text-slate-300">No Published Report Cards Yet</div>
+            <p class="text-[11px] text-slate-500 mt-1 max-w-sm mx-auto">
+              Draft report cards are hidden until teachers finish assessments and the school administration publishes them.
+            </p>
+          </div>
+        </div>
+
         <!-- Enrollment History / Timeline Card -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
           <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
@@ -958,6 +1034,10 @@ async function submitInviteParent() {
 const childAttendance = ref(null);
 const attendanceLoading = ref(false);
 
+const childReportCards = ref([]);
+const reportCardsLoading = ref(false);
+const downloadingCardId = ref(null);
+
 async function loadChildAttendance(childId) {
     if (!childId) return;
     attendanceLoading.value = true;
@@ -971,9 +1051,44 @@ async function loadChildAttendance(childId) {
     }
 }
 
+async function loadChildReportCards(childId) {
+    if (!childId) return;
+    reportCardsLoading.value = true;
+    try {
+        const res = await axios.get(`/parent/children/${childId}/report-cards`);
+        childReportCards.value = res.data.data || [];
+    } catch (e) {
+        childReportCards.value = [];
+    } finally {
+        reportCardsLoading.value = false;
+    }
+}
+
+async function downloadChildPdf(rc) {
+    const activeKid = parentStore.activeChild;
+    if (!activeKid || !rc) return;
+    downloadingCardId.value = rc.id;
+    try {
+        const res = await axios.get(`/parent/children/${activeKid.id}/report-cards/${rc.id}/pdf`, {
+            responseType: 'blob',
+        });
+        const blob = new Blob([res.data], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = `ReportCard_${activeKid.admission_number || 'Student'}_${rc.term?.name || 'Term'}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(link.href);
+    } catch (e) {
+        parentStore.error = e.response?.data?.error?.message || 'Failed to download report card PDF.';
+    } finally {
+        downloadingCardId.value = null;
+    }
+}
+
 watch(() => parentStore.activeChild, (newChild) => {
     if (newChild?.id) {
         loadChildAttendance(newChild.id);
+        loadChildReportCards(newChild.id);
     }
 }, { immediate: true });
 
@@ -983,6 +1098,7 @@ onMounted(async () => {
         const kids = await parentStore.fetchChildren();
         if (kids.length > 0) {
             loadChildAttendance(kids[0].id);
+            loadChildReportCards(kids[0].id);
         }
     } else if (authStore.isSchoolAdmin) {
         activeTab.value = 'directory';
@@ -992,6 +1108,7 @@ onMounted(async () => {
         const kids = await parentStore.fetchChildren();
         if (kids.length > 0) {
             loadChildAttendance(kids[0].id);
+            loadChildReportCards(kids[0].id);
         }
     }
 });

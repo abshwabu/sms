@@ -10,12 +10,18 @@ import StudentsView from '../views/StudentsView.vue';
 import StaffView from '../views/StaffView.vue';
 import ParentPortalView from '../views/ParentPortalView.vue';
 import AttendanceView from '../views/AttendanceView.vue';
+import GradingView from '../views/GradingView.vue';
 
 const routes = [
     {
         path: '/',
         name: 'dashboard',
         component: DashboardView,
+    },
+    {
+        path: '/grading',
+        name: 'grading',
+        component: GradingView,
     },
     {
         path: '/attendance',
