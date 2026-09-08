@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClaimCodeController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\GradeLevelController;
 use App\Http\Controllers\Api\GradingController;
 use App\Http\Controllers\Api\HealthController;
@@ -62,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Current user profile & session
     Route::get('/auth/me', [AuthController::class, 'me'])->name('api.auth.me');
     Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
 
     // Tenant-Scoped Routes: requires active tenant AND verifies user belongs to this tenant
     Route::middleware(['tenant.require', 'tenant.user'])->group(function () {

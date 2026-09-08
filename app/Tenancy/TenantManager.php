@@ -65,9 +65,11 @@ class TenantManager
         return $this->bypassScoping;
     }
 
-    /**
-     * Temporarily bypass tenant scoping during the execution of a callback.
-     */
+    public function bypass(callable $callback): mixed
+    {
+        return $this->bypassTenantScoping($callback);
+    }
+
     public function bypassTenantScoping(callable $callback): mixed
     {
         $previous = $this->bypassScoping;
