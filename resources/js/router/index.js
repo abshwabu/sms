@@ -117,4 +117,28 @@ const router = createRouter({
     linkActiveClass: 'text-indigo-400 bg-slate-800',
 });
 
+// The only open URLs are landing page ('/'), login ('/login'), and registration ('/register')
+const publicRoutes = ['/', '/login', '/register'];
+
+router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('auth_user');
+    const isAuthenticated = !!token && !!user;
+
+    // Restrict all other routes to authenticated users only
+    if (!isAuthenticated && !publicRoutes.includes(to.path)) {
+        return next({
+            path: '/login',
+            query: { redirect: to.fullPath },
+        });
+    }
+
+    // Redirect already authenticated users away from login and register to dashboard
+    if (isAuthenticated && (to.path === '/login' || to.path === '/register')) {
+        return next({ path: '/' });
+    }
+
+    next();
+});
+
 export default router;

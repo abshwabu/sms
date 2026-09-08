@@ -1,12 +1,12 @@
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-    <!-- Desktop Fixed Sidebar -->
-    <aside class="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-40">
+    <!-- Desktop Fixed Sidebar (ONLY for Authenticated Users) -->
+    <aside v-if="authStore.isAuthenticated" class="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-40">
       <SidebarNav />
     </aside>
 
-    <!-- Mobile Slide-out Drawer -->
-    <div v-show="sidebarOpen" class="fixed inset-0 z-50 lg:hidden">
+    <!-- Mobile Slide-out Drawer (ONLY for Authenticated Users) -->
+    <div v-if="authStore.isAuthenticated" v-show="sidebarOpen" class="fixed inset-0 z-50 lg:hidden">
       <!-- Backdrop Overlay -->
       <transition
         enter-active-class="transition-opacity ease-linear duration-300"
@@ -45,14 +45,18 @@
       </transition>
     </div>
 
-    <!-- Main Content Layout (Pushed on Desktop for fixed sidebar) -->
-    <div class="lg:pl-64 flex flex-col flex-1 min-h-screen">
+    <!-- Main Content Layout (Pushed on Desktop for fixed sidebar ONLY when authenticated) -->
+    <div 
+      class="flex flex-col flex-1 min-h-screen transition-all duration-200"
+      :class="authStore.isAuthenticated ? 'lg:pl-64' : ''"
+    >
       <!-- Top Responsive Header Bar -->
       <header class="sticky top-0 z-30 bg-slate-900/80 backdrop-blur border-b border-slate-800 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between flex-shrink-0">
-        <!-- Left Section: Mobile Hamburger or Desktop Breadcrumbs -->
+        <!-- Left Section: Mobile Hamburger (if authenticated) or Desktop Breadcrumbs/Brand -->
         <div class="flex items-center gap-3">
-          <!-- Mobile Hamburger Toggle -->
+          <!-- Mobile Hamburger Toggle (ONLY when authenticated) -->
           <button
+            v-if="authStore.isAuthenticated"
             @click="sidebarOpen = true"
             type="button"
             class="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700/60 transition"
@@ -63,35 +67,44 @@
             </svg>
           </button>
 
-          <!-- Mobile Brand Indicator -->
-          <router-link to="/" class="flex lg:hidden items-center gap-2">
-            <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-sm">
+          <!-- Brand for guests or mobile when sidebar is hidden -->
+          <router-link to="/" class="flex items-center gap-2 group">
+            <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-sm shadow-sm group-hover:scale-105 transition-transform duration-200">
               B
             </div>
             <span class="font-bold text-sm text-white tracking-tight">Bina Schools</span>
+            <span 
+              v-if="!authStore.isAuthenticated" 
+              class="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+            >
+              Multi-Tenant
+            </span>
           </router-link>
 
-          <!-- Desktop Route Breadcrumb -->
-          <div class="hidden lg:flex items-center gap-2 text-xs">
+          <!-- Desktop Route Breadcrumb (ONLY when authenticated) -->
+          <div v-if="authStore.isAuthenticated" class="hidden lg:flex items-center gap-2 text-xs ml-2">
+            <span class="text-slate-500">/</span>
             <span class="text-slate-400 font-medium">{{ currentCategory }}</span>
             <span class="text-slate-600">/</span>
             <span class="text-slate-200 font-semibold">{{ currentTitle }}</span>
           </div>
         </div>
 
-        <!-- Right Section: Active School & Notifications & User -->
+        <!-- Right Section: Authenticated User Controls OR Guest Actions -->
         <div class="flex items-center gap-2 sm:gap-3">
-          <!-- Active School Pill (Desktop & Tablet) -->
-          <div class="hidden sm:flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs shadow-sm">
-            <span 
-              class="w-2 h-2 rounded-full" 
-              :class="tenantStore.hasTenant ? 'bg-emerald-400' : 'bg-amber-400'"
-            ></span>
-            <span class="text-slate-400">School:</span>
-            <span class="font-semibold text-slate-200 truncate max-w-[170px]">
-              {{ activeSchoolName }}
-            </span>
-          </div>
+          <!-- Authenticated Controls -->
+          <template v-if="authStore.isAuthenticated">
+            <!-- Active School Pill (Desktop & Tablet) -->
+            <div class="hidden sm:flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs shadow-sm">
+              <span 
+                class="w-2 h-2 rounded-full" 
+                :class="tenantStore.hasTenant ? 'bg-emerald-400' : 'bg-amber-400'"
+              ></span>
+              <span class="text-slate-400">School:</span>
+              <span class="font-semibold text-slate-200 truncate max-w-[170px]">
+                {{ activeSchoolName }}
+              </span>
+            </div>
 
           <!-- In-App Notification Center Bell & Dropdown -->
           <div class="relative" ref="notificationRef">
@@ -195,18 +208,45 @@
           </div>
 
           <!-- User Status Badge -->
-          <router-link 
-            :to="authStore.isAuthenticated ? '/auth' : '/login'"
-            class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-xs transition"
-            :class="authStore.isAuthenticated 
-              ? 'bg-slate-800/80 border-slate-700 text-slate-200 hover:border-slate-600' 
-              : 'bg-indigo-600 text-white border-indigo-500 font-semibold shadow-sm hover:bg-indigo-500'"
-          >
-            <span v-if="authStore.isAuthenticated" class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span class="truncate max-w-[120px] sm:max-w-none">
-              {{ authStore.isAuthenticated ? `${authStore.user?.name}` : 'Sign In' }}
-            </span>
-          </router-link>
+            <router-link 
+              to="/auth"
+              class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-xs bg-slate-800/80 border-slate-700 text-slate-200 hover:border-slate-600 transition"
+            >
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span class="truncate max-w-[120px] sm:max-w-none">
+                {{ authStore.user?.name }}
+              </span>
+            </router-link>
+
+            <!-- Sign Out Button -->
+            <button
+              @click="handleLogout"
+              type="button"
+              class="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-700/60 transition"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          </template>
+
+          <!-- Guest Action Buttons (When NOT authenticated) -->
+          <template v-else>
+            <router-link
+              to="/login"
+              class="px-3.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700/80 transition"
+            >
+              Sign In
+            </router-link>
+            <router-link
+              to="/register"
+              class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-semibold shadow-sm transition"
+            >
+              Register School
+            </router-link>
+          </template>
         </div>
       </header>
 
@@ -326,6 +366,11 @@ watch(
     showNotifications.value = false;
   }
 );
+
+async function handleLogout() {
+  await authStore.logout();
+  router.push('/login');
+}
 
 onMounted(() => {
   tenantStore.fetchSchools();
