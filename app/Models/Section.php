@@ -176,4 +176,9 @@ class Section extends Model
     {
         return $this->enrolledCount() < $this->capacity;
     }
+
+    public function timetableSlots(): HasMany
+    {
+        return $this->hasMany(TimetableSlot::class)->orderBy('period_number');
+    }
 }

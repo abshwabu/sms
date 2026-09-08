@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             ParentSeeder::class,
             AttendanceSeeder::class,
             GradingSeeder::class,
+            TimetableSeeder::class,
         ]);
     }
 }

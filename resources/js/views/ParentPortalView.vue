@@ -459,6 +459,64 @@
           </div>
         </div>
 
+        <!-- Weekly Class Timetable (Prompt 9) -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>Weekly Class Schedule &amp; Timetable</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">
+                  Weekly Roster
+                </span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Section weekly schedule across subjects, assigned teachers, and room locations.
+              </p>
+            </div>
+          </div>
+
+          <div v-if="timetableLoading" class="py-4 text-center text-xs text-slate-500">
+            Loading child weekly timetable...
+          </div>
+
+          <div v-else-if="childTimetable?.slots?.length > 0" class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase font-semibold">
+                  <th class="p-2.5 text-center w-28">Period</th>
+                  <th v-for="d in childTimetable.days" :key="d" class="p-2.5 text-center min-w-[120px]">
+                    {{ d.charAt(0).toUpperCase() + d.slice(1) }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                <tr v-for="p in childTimetable.periods" :key="p.period_number">
+                  <td class="p-2 text-center bg-slate-950/40 border-r border-slate-800 font-mono text-[11px]">
+                    <div class="font-bold text-white">Period {{ p.period_number }}</div>
+                    <div class="text-[10px] text-slate-500">{{ p.times.start }} - {{ p.times.end }}</div>
+                  </td>
+                  <td v-for="d in childTimetable.days" :key="d" class="p-2 border-r border-slate-800 last:border-r-0 align-top">
+                    <div v-if="childTimetable.grid[d]?.[p.period_number]" class="p-2 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                      <div class="font-bold text-white text-[11px]">{{ childTimetable.grid[d][p.period_number].subject?.name }}</div>
+                      <div class="text-[10px] text-indigo-400">{{ childTimetable.grid[d][p.period_number].teacher?.name || 'No Teacher' }}</div>
+                      <div class="text-[9px] text-slate-500 font-mono">📍 {{ childTimetable.grid[d][p.period_number].room || 'Room TBA' }}</div>
+                    </div>
+                    <div v-else class="text-center text-slate-700 text-[10px] py-2">-</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-else class="py-6 text-center bg-slate-950/40 rounded-lg border border-dashed border-slate-800/80">
+            <div class="text-2xl mb-1">📅</div>
+            <div class="text-xs font-semibold text-slate-300">No Weekly Schedule Assigned</div>
+            <p class="text-[11px] text-slate-500 mt-1 max-w-sm mx-auto">
+              Timetable slots have not yet been assigned for this student's section.
+            </p>
+          </div>
+        </div>
+
         <!-- Enrollment History / Timeline Card -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
           <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
@@ -896,7 +954,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useParentStore } from '../stores/parent';
 import axios from 'axios';
@@ -1038,6 +1096,9 @@ const childReportCards = ref([]);
 const reportCardsLoading = ref(false);
 const downloadingCardId = ref(null);
 
+const childTimetable = ref(null);
+const timetableLoading = ref(false);
+
 async function loadChildAttendance(childId) {
     if (!childId) return;
     attendanceLoading.value = true;
@@ -1061,6 +1122,19 @@ async function loadChildReportCards(childId) {
         childReportCards.value = [];
     } finally {
         reportCardsLoading.value = false;
+    }
+}
+
+async function loadChildTimetable(childId) {
+    if (!childId) return;
+    timetableLoading.value = true;
+    try {
+        const res = await axios.get(`/parent/children/${childId}/timetable`);
+        childTimetable.value = res.data.data;
+    } catch (e) {
+        childTimetable.value = null;
+    } finally {
+        timetableLoading.value = false;
     }
 }
 
@@ -1089,6 +1163,7 @@ watch(() => parentStore.activeChild, (newChild) => {
     if (newChild?.id) {
         loadChildAttendance(newChild.id);
         loadChildReportCards(newChild.id);
+        loadChildTimetable(newChild.id);
     }
 }, { immediate: true });
 
@@ -1099,6 +1174,7 @@ onMounted(async () => {
         if (kids.length > 0) {
             loadChildAttendance(kids[0].id);
             loadChildReportCards(kids[0].id);
+            loadChildTimetable(kids[0].id);
         }
     } else if (authStore.isSchoolAdmin) {
         activeTab.value = 'directory';
@@ -1109,6 +1185,7 @@ onMounted(async () => {
         if (kids.length > 0) {
             loadChildAttendance(kids[0].id);
             loadChildReportCards(kids[0].id);
+            loadChildTimetable(kids[0].id);
         }
     }
 });

@@ -99,6 +99,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Timetable slots taught by this teacher.
+     */
+    public function timetableSlots(): HasMany
+    {
+        return $this->hasMany(TimetableSlot::class, 'teacher_id');
+    }
+
+    /**
      * Check if the user is a platform-wide Super Admin.
      */
     public function isSuperAdmin(): bool

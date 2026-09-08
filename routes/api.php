@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\SectionController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\TermController;
+use App\Http\Controllers\Api\TimetableController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -91,6 +92,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/report-cards/{reportCard}/publish', [ReportCardController::class, 'publish'])->name('api.report-cards.publish');
         Route::get('/report-cards/{reportCard}/pdf', [ReportCardController::class, 'downloadPdf'])->name('api.report-cards.pdf');
 
+        // Weekly Timetable / Scheduling (Prompt 9)
+        Route::get('/sections/{section}/timetable', [TimetableController::class, 'getSectionTimetable'])->name('api.sections.timetable.get');
+        Route::post('/sections/{section}/timetable', [TimetableController::class, 'storeSlot'])->name('api.sections.timetable.post');
+        Route::post('/sections/{section}/timetable/batch', [TimetableController::class, 'batchStoreSlots'])->name('api.sections.timetable.batch');
+        Route::put('/timetable-slots/{timetableSlot}', [TimetableController::class, 'updateSlot'])->name('api.timetable-slots.update');
+        Route::delete('/timetable-slots/{timetableSlot}', [TimetableController::class, 'destroySlot'])->name('api.timetable-slots.destroy');
+
+        // Teacher Personal Timetable (Aggregated across sections)
+        Route::get('/teachers/{teacher}/timetable', [TimetableController::class, 'getTeacherTimetable'])->name('api.teachers.timetable');
+        Route::get('/teacher/timetable', [TimetableController::class, 'getMyTeacherTimetable'])->name('api.teacher.my-timetable');
+
         // Staff Directory (Read)
         Route::get('/staff', [StaffController::class, 'index'])->name('api.staff.index');
         Route::get('/staff/{staff}', [StaffController::class, 'show'])->name('api.staff.show');
@@ -105,6 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/student/attendance', [AttendanceController::class, 'getMyStudentAttendance'])->name('api.student.my-attendance');
         Route::get('/student/report-cards', [ReportCardController::class, 'studentReportCards'])->name('api.student.report-cards');
         Route::get('/student/report-cards/{reportCard}/pdf', [ReportCardController::class, 'studentDownloadPdf'])->name('api.student.report-cards.pdf');
+        Route::get('/student/timetable', [TimetableController::class, 'getMyStudentTimetable'])->name('api.student.timetable');
 
         // Parent Portal (Child switching & dashboard access)
         Route::prefix('parent')->group(function () {
@@ -113,6 +126,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/children/{student}/attendance', [AttendanceController::class, 'getParentChildAttendance'])->name('api.parent.child-attendance');
             Route::get('/children/{student}/report-cards', [ReportCardController::class, 'parentChildReportCards'])->name('api.parent.child-report-cards');
             Route::get('/children/{student}/report-cards/{reportCard}/pdf', [ReportCardController::class, 'parentDownloadChildPdf'])->name('api.parent.child-report-cards.pdf');
+            Route::get('/children/{student}/timetable', [TimetableController::class, 'getParentChildTimetable'])->name('api.parent.child-timetable');
         });
 
         // School Calendar (Read)

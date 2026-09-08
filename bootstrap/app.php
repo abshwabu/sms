@@ -47,6 +47,10 @@ return Application::configure(basePath: dirname(__DIR__))
             return ApiResponse::error($e->getMessage(), 'CLOSED_ACADEMIC_YEAR', 422);
         });
 
+        $exceptions->render(function (\App\Exceptions\TimetableConflictException $e, Request $request) {
+            return ApiResponse::error($e->getMessage(), 'TIMETABLE_CONFLICT', 422, $e->getDetails());
+        });
+
         $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return ApiResponse::validationError($e->errors(), $e->getMessage());

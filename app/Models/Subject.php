@@ -54,4 +54,9 @@ class Subject extends Model
     {
         return $this->hasMany(ReportCardItem::class);
     }
+
+    public function timetableSlots(): HasMany
+    {
+        return $this->hasMany(TimetableSlot::class);
+    }
 }

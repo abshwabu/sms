@@ -32,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(AttendanceRecord::class, AttendancePolicy::class);
         Gate::policy(\App\Models\ReportCard::class, \App\Policies\ReportCardPolicy::class);
         Gate::policy(\App\Models\Grade::class, \App\Policies\GradePolicy::class);
+        Gate::policy(\App\Models\TimetableSlot::class, \App\Policies\TimetableSlotPolicy::class);
         Route::model('parent', ParentProfile::class);
     }
 }
