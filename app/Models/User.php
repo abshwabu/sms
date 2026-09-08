@@ -83,6 +83,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the parent profile if the user is a parent.
+     */
+    public function parentProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ParentProfile::class);
+    }
+
+    /**
      * Invitations sent by this user.
      */
     public function sentInvitations(): HasMany

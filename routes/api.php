@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\GradeLevelController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\InvitationController;
+use App\Http\Controllers\Api\ParentManagementController;
+use App\Http\Controllers\Api\ParentPortalController;
 use App\Http\Controllers\Api\SchoolAdminController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SectionController;
@@ -73,6 +75,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/students', [StudentController::class, 'index'])->name('api.students.index');
         Route::get('/students/{student}', [StudentController::class, 'show'])->name('api.students.show');
 
+        // Parent Portal (Child switching & dashboard access)
+        Route::prefix('parent')->group(function () {
+            Route::get('/children', [ParentPortalController::class, 'children'])->name('api.parent.children');
+            Route::get('/children/{student}/dashboard', [ParentPortalController::class, 'childDashboard'])->name('api.parent.child-dashboard');
+        });
+
         // School Admin Only Endpoints (403 for teacher/student/parent)
         Route::middleware('role:school_admin,super_admin')->group(function () {
             // School admin management
@@ -117,6 +125,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/students/{student}', [StudentController::class, 'destroy'])->name('api.students.destroy');
             Route::post('/students/import', [StudentController::class, 'import'])->name('api.students.import');
             Route::post('/students/promote-roster', [StudentController::class, 'promoteRoster'])->name('api.students.promote-roster');
+
+            // Parent Accounts & Student Linking (Admin)
+            Route::get('/parents', [ParentManagementController::class, 'index'])->name('api.parents.index');
+            Route::post('/parents', [ParentManagementController::class, 'store'])->name('api.parents.store');
+            Route::get('/parents/{parent}', [ParentManagementController::class, 'show'])->name('api.parents.show');
+            Route::post('/parents/{parent}/link-student', [ParentManagementController::class, 'linkStudent'])->name('api.parents.link-student');
+            Route::delete('/parents/{parent}/students/{student}', [ParentManagementController::class, 'unlinkStudent'])->name('api.parents.unlink-student');
+            Route::post('/parents/invite', [ParentManagementController::class, 'invite'])->name('api.parents.invite');
         });
     });
 });

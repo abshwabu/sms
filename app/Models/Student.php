@@ -52,6 +52,13 @@ class Student extends Model
         return $this->hasMany(Enrollment::class)->orderBy('enrolled_at', 'desc');
     }
 
+    public function parents(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(ParentProfile::class, 'parent_student', 'student_id', 'parent_id')
+            ->withPivot(['relationship', 'is_primary_contact'])
+            ->withTimestamps();
+    }
+
     /**
      * Scope search across student name, email, and admission number.
      */

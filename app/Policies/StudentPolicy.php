@@ -38,8 +38,11 @@ class StudentPolicy extends BaseTenantPolicy
 
         // Parent can view linked student record
         if ($user->isParent()) {
-            // Parent linkage check
-            return false;
+            $studentId = $student instanceof Student ? $student->id : $student->student?->id;
+            if (! $studentId) {
+                return false;
+            }
+            return $user->parentProfile?->isLinkedTo($studentId) ?? false;
         }
 
         return false;
