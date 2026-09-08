@@ -27,6 +27,11 @@ use App\Http\Controllers\Api\TelegramController;
 use App\Http\Controllers\Api\TermController;
 use App\Http\Controllers\Api\TimetableController;
 use App\Http\Controllers\Api\TransportController;
+use App\Http\Controllers\Api\FeeStructureController;
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\ParentBillingController;
+use App\Http\Controllers\Api\PaymentReceiptController;
+use App\Http\Controllers\Api\ChapaWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -58,6 +63,10 @@ Route::post('/claim-codes/claim', [ClaimCodeController::class, 'claim'])->name('
 
 // Public Telegram Webhook Endpoint
 Route::post('/telegram/webhook/{school}', [TelegramController::class, 'webhook'])->name('api.telegram.webhook');
+
+// Public Chapa Payment Webhook & Callback
+Route::post('/webhooks/chapa', [ChapaWebhookController::class, 'handleWebhook'])->name('api.webhooks.chapa');
+Route::get('/payments/chapa/callback', [ChapaWebhookController::class, 'handleCallback'])->name('api.payments.chapa.callback');
 
 // Authenticated Routes (Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
@@ -143,7 +152,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/children/{student}/timetable', [TimetableController::class, 'getParentChildTimetable'])->name('api.parent.child-timetable');
             Route::get('/children/{student}/borrowed-books', [LibraryController::class, 'childBorrowedBooks'])->name('api.parent.child-borrowed-books');
             Route::get('/children/{student}/transport', [TransportController::class, 'parentChildTransport'])->name('api.parent.child-transport');
+            Route::get('/children/{student}/invoices', [ParentBillingController::class, 'invoices'])->name('api.parent.child-invoices');
+            Route::get('/children/{student}/payments', [ParentBillingController::class, 'payments'])->name('api.parent.child-payments');
+            Route::post('/invoices/{invoice}/pay-online', [ParentBillingController::class, 'payOnline'])->name('api.parent.invoices.pay-online');
         });
+
+        // Payment Receipts (PDF download and browser preview)
+        Route::get('/payments/{payment}/receipt', [PaymentReceiptController::class, 'downloadReceipt'])->name('api.payments.receipt.download');
+        Route::get('/payments/{payment}/receipt/preview', [PaymentReceiptController::class, 'streamReceipt'])->name('api.payments.receipt.preview');
 
         // Transport Routes (Read)
         Route::get('/transport/routes', [TransportController::class, 'routes'])->name('api.transport.routes.index');
@@ -276,6 +292,21 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/assignments', [TransportController::class, 'assignStudent'])->name('api.transport.assignments.store');
                 Route::post('/sections/{section}/routes/{route}/assign', [TransportController::class, 'bulkAssignSection'])->name('api.transport.sections.assign');
                 Route::delete('/students/{student}/assignment', [TransportController::class, 'unassignStudent'])->name('api.transport.students.unassign');
+            });
+
+            // Fee & Billing Management (Admin)
+            Route::prefix('billing')->group(function () {
+                Route::get('/fee-structures', [FeeStructureController::class, 'index'])->name('api.billing.fee-structures.index');
+                Route::post('/fee-structures', [FeeStructureController::class, 'store'])->name('api.billing.fee-structures.store');
+                Route::get('/fee-structures/{feeStructure}', [FeeStructureController::class, 'show'])->name('api.billing.fee-structures.show');
+                Route::put('/fee-structures/{feeStructure}', [FeeStructureController::class, 'update'])->name('api.billing.fee-structures.update');
+                Route::delete('/fee-structures/{feeStructure}', [FeeStructureController::class, 'destroy'])->name('api.billing.fee-structures.destroy');
+
+                Route::get('/invoices', [InvoiceController::class, 'index'])->name('api.billing.invoices.index');
+                Route::post('/invoices/bulk-generate', [InvoiceController::class, 'bulkGenerate'])->name('api.billing.invoices.bulk-generate');
+                Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('api.billing.invoices.show');
+                Route::post('/invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment'])->name('api.billing.invoices.payments.store');
+                Route::get('/collections', [InvoiceController::class, 'collections'])->name('api.billing.collections');
             });
         });
     });

@@ -49,4 +49,14 @@ class Term extends Model
     {
         return $this->belongsTo(AcademicYear::class);
     }
+
+    public function feeStructures(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(FeeStructure::class);
+    }
+
+    public function invoices(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
 }

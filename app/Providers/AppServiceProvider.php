@@ -21,6 +21,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TenantManager::class, function () {
             return new TenantManager();
         });
+
+        $this->app->bind(
+            \App\Services\Payments\PaymentGatewayInterface::class,
+            \App\Services\Payments\ChapaPaymentGateway::class
+        );
     }
 
     /**
@@ -41,6 +46,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(\App\Models\StudentTransport::class, \App\Policies\TransportPolicy::class);
         Gate::policy(\App\Models\Announcement::class, \App\Policies\AnnouncementPolicy::class);
         Gate::policy(\App\Models\CommunicationThread::class, \App\Policies\CommunicationThreadPolicy::class);
+        Gate::policy(\App\Models\FeeStructure::class, \App\Policies\FeeStructurePolicy::class);
+        Gate::policy(\App\Models\Invoice::class, \App\Policies\InvoicePolicy::class);
+        Gate::policy(\App\Models\Payment::class, \App\Policies\PaymentPolicy::class);
         Route::model('parent', ParentProfile::class);
     }
 }

@@ -79,6 +79,16 @@ class Student extends Model
         return $this->hasOne(StudentTransport::class);
     }
 
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class)->orderBy('due_date', 'desc');
+    }
+
+    public function payments(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(Payment::class, Invoice::class);
+    }
+
     /**
      * Scope search across student name, email, and admission number.
      */

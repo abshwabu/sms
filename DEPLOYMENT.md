@@ -65,6 +65,13 @@ MAIL_FROM_ADDRESS="no-reply@bina.example.com"
 MAIL_FROM_NAME="Bina Schools"
 
 TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
+
+# Chapa Payment Gateway (Prompt 16)
+CHAPA_PUBLIC_KEY="CHAPUBK_TEST-xxxxxx"
+CHAPA_SECRET_KEY="CHASECK_TEST-xxxxxx"
+CHAPA_WEBHOOK_SECRET="your_chapa_webhook_secret"
+CHAPA_CURRENCY="ETB"
+CHAPA_SIMULATE=false
 ```
 
 ### Step 2: Database Migrations & Optimization
@@ -231,6 +238,10 @@ All accounts use the universal demo password: `password123`.
   - Bulk student import via CSV and end-of-year promotion workflows.
   - School-wide and grade-level targeted announcements.
   - Timetable scheduling with double-booking prevention.
+  - Fee structure configuration per grade level / term (tuition, facility, activity).
+  - Bulk invoice generation with automatic conditional transport item inclusion/exclusion based on active bus route assignments.
+  - Collections dashboard tracking total billed, paid, and outstanding balances across grades and sections.
+  - Manual cash and bank transfer payment recording with auto status recalculation.
 
 #### 3. Teacher
 - **Greenwood Teacher**: `teacher@greenwood.edu` (Edna Krabappel — Grade 10 Homeroom & English Teacher) / `password123`
@@ -258,6 +269,9 @@ All accounts use the universal demo password: `password123`.
 - **Maplewood Parent**: `parent@maplewood.edu` (Sarah Vance — Linked to Tommy) / `password123`
 - **Capabilities**:
   - Multi-child switcher on parent dashboard without re-logging in.
+  - Outstanding and past invoices per child with balance tracking.
+  - Online payments via Chapa payment gateway (Ethiopian Birr, Telebirr, and cards).
+  - Official PDF receipt download.
   - Real-time attendance notifications (absence alerts).
   - Academic progress reports and report card downloads.
   - Assigned school bus routes, designated stops, and pickup/dropoff schedules.
@@ -270,7 +284,7 @@ All accounts use the universal demo password: `password123`.
 The test suite thoroughly verifies multi-tenant isolation, cross-section teacher restrictions, and RBAC security boundaries across all modules:
 
 ```bash
-# Run the entire test suite (139 tests, 1011 assertions):
+# Run the entire test suite (145 tests, 1094 assertions):
 php artisan test
 
 # Run the comprehensive RBAC & Tenant Isolation test specifically:

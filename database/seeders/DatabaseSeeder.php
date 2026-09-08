@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             LibrarySeeder::class,
             TransportSeeder::class,
             CommunicationSeeder::class,
+            FeeAndBillingSeeder::class,
         ]);
     }
 }

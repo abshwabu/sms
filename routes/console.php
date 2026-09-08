@@ -6,7 +6,9 @@ use App\Models\AttendanceRecord;
 use App\Models\Book;
 use App\Models\BookLoan;
 use App\Models\Course;
+use App\Models\FeeStructure;
 use App\Models\GradeLevel;
+use App\Models\Invoice;
 use App\Models\LibraryFine;
 use App\Models\ReportCard;
 use App\Models\School;
@@ -213,6 +215,8 @@ Artisan::command('tenants:backup {school_id?}', function () {
             'library_loans' => BookLoan::withoutGlobalScopes()->where('school_id', $school->id)->get()->toArray(),
             'transport_routes' => TransportRoute::withoutGlobalScopes()->where('school_id', $school->id)->with('stops')->get()->toArray(),
             'announcements' => Announcement::withoutGlobalScopes()->where('school_id', $school->id)->get()->toArray(),
+            'fee_structures' => FeeStructure::withoutGlobalScopes()->where('school_id', $school->id)->get()->toArray(),
+            'invoices' => Invoice::withoutGlobalScopes()->where('school_id', $school->id)->with(['items', 'payments'])->get()->toArray(),
         ];
 
         $filename = "{$school->subdomain}_backup_{$timestamp}.json";

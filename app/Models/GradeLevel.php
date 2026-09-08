@@ -32,6 +32,11 @@ class GradeLevel extends Model
         return $this->hasMany(Section::class);
     }
 
+    public function feeStructures(): HasMany
+    {
+        return $this->hasMany(FeeStructure::class);
+    }
+
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('sequence');

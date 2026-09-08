@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'chapa' => [
+        'public_key' => env('CHAPA_PUBLIC_KEY', 'CHAPUBK_TEST-demo'),
+        'secret_key' => env('CHAPA_SECRET_KEY', 'CHASECK_TEST-demo'),
+        'webhook_secret' => env('CHAPA_WEBHOOK_SECRET', 'test_webhook_secret'),
+        'base_url' => env('CHAPA_BASE_URL', 'https://api.chapa.co/v1'),
+        'currency' => env('CHAPA_CURRENCY', 'ETB'),
+        'simulate' => env('CHAPA_SIMULATE', true),
+    ],
+
 ];
