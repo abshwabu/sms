@@ -6,6 +6,8 @@ use App\Enums\DayOfWeek;
 use App\Exceptions\TimetableConflictException;
 use App\Models\AcademicYear;
 use App\Models\Section;
+use App\Models\Student;
+use App\Models\StudentSubjectSelection;
 use App\Models\Subject;
 use App\Models\TimetableSlot;
 use App\Models\User;
@@ -442,6 +444,149 @@ class TimetableService
                 'total_weekly_periods' => $slots->count(),
                 'sections_count' => count($sectionsTaught),
                 'distinct_subjects_count' => $slots->pluck('subject_id')->unique()->count(),
+            ],
+        ];
+    }
+
+    /**
+     * Acceptance criterion: Student personal timetables correctly merge section core slots
+     * with chosen elective slots, even across sections.
+     */
+    public function getStudentTimetable(Student $student, ?int $academicYearId = null): array
+    {
+        $schoolId = $student->school_id;
+
+        $academicYear = $academicYearId
+            ? AcademicYear::withoutGlobalScopes()->where('school_id', $schoolId)->find($academicYearId)
+            : AcademicYear::withoutGlobalScopes()->where('school_id', $schoolId)->where('is_active', true)->first();
+
+        $section = $student->currentSection;
+        if (! $section || ($academicYear && (int) $section->academic_year_id !== (int) $academicYear->id)) {
+            $enrollment = $student->enrollments()
+                ->when($academicYear, fn($q) => $q->where('academic_year_id', $academicYear->id))
+                ->first();
+            if ($enrollment && $enrollment->section) {
+                $section = $enrollment->section;
+            }
+        }
+
+        $days = DayOfWeek::schoolDays();
+        $periods = [1, 2, 3, 4, 5, 6, 7, 8];
+
+        $grid = [];
+        foreach ($days as $day) {
+            $grid[$day] = [];
+            foreach ($periods as $p) {
+                $grid[$day][$p] = null;
+            }
+        }
+
+        if (! $section) {
+            return [
+                'student' => [
+                    'id' => $student->id,
+                    'name' => $student->user?->name,
+                ],
+                'section' => null,
+                'academic_year' => $academicYear ? ['id' => $academicYear->id, 'name' => $academicYear->name] : null,
+                'days' => $days,
+                'periods' => array_map(fn($p) => ['period_number' => $p, 'times' => self::defaultPeriodTimes($p)], $periods),
+                'slots' => collect(),
+                'grid' => $grid,
+                'stats' => [
+                    'total_slots' => 0,
+                    'core_slots_count' => 0,
+                    'elective_slots_count' => 0,
+                    'enrolled_electives_count' => 0,
+                ],
+            ];
+        }
+
+        // 1. Fetch student's enrolled elective subject IDs
+        $enrolledElectiveIds = StudentSubjectSelection::withoutGlobalScopes()
+            ->where('school_id', $schoolId)
+            ->where('student_id', $student->id)
+            ->when($academicYear, fn($q) => $q->where('academic_year_id', $academicYear->id))
+            ->where('status', 'enrolled')
+            ->pluck('subject_id')
+            ->all();
+
+        // 2. Fetch section's timetable slots
+        $sectionSlots = TimetableSlot::withoutGlobalScopes()
+            ->where('school_id', $schoolId)
+            ->where('section_id', $section->id)
+            ->when($academicYear, fn($q) => $q->where('academic_year_id', $academicYear->id))
+            ->with(['subject', 'teacher', 'section.gradeLevel'])
+            ->get();
+
+        // 3. Filter section slots: keep core subjects + enrolled electives, exclude unselected electives
+        $keptSectionSlots = $sectionSlots->filter(function ($slot) use ($enrolledElectiveIds) {
+            if (! $slot->subject || ! $slot->subject->is_elective) {
+                return true; // Core subjects implicit
+            }
+            return in_array($slot->subject_id, $enrolledElectiveIds);
+        });
+
+        // 4. Merge cross-section elective slots if student's elective is held in another section
+        $coveredElectiveIds = $keptSectionSlots->filter(fn($s) => $s->subject?->is_elective)->pluck('subject_id')->unique()->all();
+        $uncoveredElectiveIds = array_values(array_diff($enrolledElectiveIds, $coveredElectiveIds));
+
+        $crossSectionSlots = collect();
+        if (! empty($uncoveredElectiveIds)) {
+            $crossSectionSlots = TimetableSlot::withoutGlobalScopes()
+                ->where('school_id', $schoolId)
+                ->when($academicYear, fn($q) => $q->where('academic_year_id', $academicYear->id))
+                ->whereIn('subject_id', $uncoveredElectiveIds)
+                ->whereHas('section', function ($q) use ($section) {
+                    $q->where('grade_level_id', $section->grade_level_id);
+                })
+                ->with(['subject', 'teacher', 'section.gradeLevel'])
+                ->get();
+        }
+
+        $allSlots = $keptSectionSlots->concat($crossSectionSlots)->values();
+
+        // Populate weekly grid
+        foreach ($allSlots as $slot) {
+            $d = $slot->day_of_week instanceof DayOfWeek ? $slot->day_of_week->value : $slot->day_of_week;
+            $p = (int) $slot->period_number;
+            if (isset($grid[$d])) {
+                $grid[$d][$p] = $slot;
+            }
+        }
+
+        $coreCount = $allSlots->filter(fn($s) => ! ($s->subject?->is_elective))->count();
+        $electiveCount = $allSlots->filter(fn($s) => (bool) ($s->subject?->is_elective))->count();
+
+        return [
+            'student' => [
+                'id' => $student->id,
+                'name' => $student->user?->name,
+                'admission_number' => $student->admission_number,
+            ],
+            'section' => [
+                'id' => $section->id,
+                'name' => $section->name,
+                'grade_level' => $section->gradeLevel?->name,
+                'homeroom_teacher' => $section->homeroomTeacher?->name,
+            ],
+            'academic_year' => $academicYear ? [
+                'id' => $academicYear->id,
+                'name' => $academicYear->name,
+            ] : null,
+            'days' => $days,
+            'periods' => array_map(fn($p) => [
+                'period_number' => $p,
+                'times' => self::defaultPeriodTimes($p),
+            ], $periods),
+            'slots' => $allSlots,
+            'grid' => $grid,
+            'stats' => [
+                'total_slots' => $allSlots->count(),
+                'core_slots_count' => $coreCount,
+                'elective_slots_count' => $electiveCount,
+                'enrolled_electives_count' => count($enrolledElectiveIds),
+                'enrolled_elective_ids' => $enrolledElectiveIds,
             ],
         ];
     }

@@ -171,7 +171,7 @@ class TimetableController extends Controller
     }
 
     /**
-     * Authenticated student views their own section's weekly timetable.
+     * Authenticated student views their personal weekly timetable (core + selected electives).
      */
     public function getMyStudentTimetable(
         Request $request,
@@ -183,19 +183,14 @@ class TimetableController extends Controller
             return ApiResponse::error('Only students can access this endpoint.', 'FORBIDDEN', Response::HTTP_FORBIDDEN);
         }
 
-        $section = $user->student->currentSection;
+        $academicYearId = $request->query('academic_year_id');
+        $timetable = $timetableService->getStudentTimetable($user->student, $academicYearId ? (int) $academicYearId : null);
 
-        if (! $section) {
-            return ApiResponse::error('You are not currently enrolled in any section.', 'NO_SECTION', Response::HTTP_NOT_FOUND);
-        }
-
-        $timetable = $timetableService->getSectionTimetable($section);
-
-        return $this->respondWithSuccess($timetable, 'Student section timetable retrieved successfully.');
+        return $this->respondWithSuccess($timetable, 'Student personal timetable retrieved successfully.');
     }
 
     /**
-     * Authenticated parent views their linked child's section timetable.
+     * Authenticated parent views their linked child's personal timetable.
      */
     public function getParentChildTimetable(
         Request $request,
@@ -212,14 +207,38 @@ class TimetableController extends Controller
             );
         }
 
-        $section = $student->currentSection;
+        $academicYearId = $request->query('academic_year_id');
+        $timetable = $timetableService->getStudentTimetable($student, $academicYearId ? (int) $academicYearId : null);
 
-        if (! $section) {
-            return ApiResponse::error('Student is not currently enrolled in any section.', 'NO_SECTION', Response::HTTP_NOT_FOUND);
+        return $this->respondWithSuccess($timetable, 'Child personal timetable retrieved successfully.');
+    }
+
+    /**
+     * View personal timetable for a specific student (Admin, staff, parent, or student themselves).
+     */
+    public function getStudentTimetable(
+        Request $request,
+        Student $student,
+        TimetableService $timetableService
+    ): JsonResponse {
+        $user = $request->user();
+
+        $canView = $user->isSchoolAdmin()
+            || ($user->isTeacher())
+            || ($user->isParent() && $user->parentProfile?->isLinkedTo($student))
+            || ($user->isStudent() && (int) $user->student?->id === (int) $student->id);
+
+        if (! $canView) {
+            return ApiResponse::error(
+                'You are not authorized to view this student\'s timetable.',
+                'FORBIDDEN',
+                Response::HTTP_FORBIDDEN
+            );
         }
 
-        $timetable = $timetableService->getSectionTimetable($section);
+        $academicYearId = $request->query('academic_year_id');
+        $timetable = $timetableService->getStudentTimetable($student, $academicYearId ? (int) $academicYearId : null);
 
-        return $this->respondWithSuccess($timetable, 'Child section timetable retrieved successfully.');
+        return $this->respondWithSuccess($timetable, 'Student personal timetable retrieved successfully.');
     }
 }

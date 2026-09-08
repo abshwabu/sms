@@ -59,4 +59,14 @@ class Subject extends Model
     {
         return $this->hasMany(TimetableSlot::class);
     }
+
+    public function offerings(): HasMany
+    {
+        return $this->hasMany(SubjectOffering::class);
+    }
+
+    public function studentSelections(): HasMany
+    {
+        return $this->hasMany(StudentSubjectSelection::class);
+    }
 }

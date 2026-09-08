@@ -21,6 +21,7 @@ use App\Models\SchoolCalendar;
 use App\Models\Section;
 use App\Models\Staff;
 use App\Models\Student;
+use App\Models\StudentSubjectSelection;
 use App\Models\StudentTransport;
 use App\Models\Subject;
 use App\Models\TimetableSlot;
@@ -538,13 +539,43 @@ class DashboardService
         // Today's Timetable
         $timetableSlots = collect();
         if ($student->current_section_id) {
-            $timetableSlots = TimetableSlot::withoutGlobalScopes()
+            $enrolledElectiveIds = StudentSubjectSelection::withoutGlobalScopes()
+                ->where('school_id', $schoolId)
+                ->where('student_id', $student->id)
+                ->where('status', 'enrolled')
+                ->pluck('subject_id')
+                ->all();
+
+            $sectionSlots = TimetableSlot::withoutGlobalScopes()
                 ->where('school_id', $schoolId)
                 ->where('section_id', $student->current_section_id)
                 ->where('day_of_week', $dayOfWeek)
-                ->orderBy('period_number')
                 ->with(['subject', 'teacher'])
                 ->get()
+                ->filter(function ($slot) use ($enrolledElectiveIds) {
+                    if (! $slot->subject || ! $slot->subject->is_elective) {
+                        return true;
+                    }
+                    return in_array($slot->subject_id, $enrolledElectiveIds);
+                });
+
+            $coveredElectives = $sectionSlots->filter(fn($s) => $s->subject?->is_elective)->pluck('subject_id')->unique()->all();
+            $uncoveredElectives = array_values(array_diff($enrolledElectiveIds, $coveredElectives));
+
+            $crossSectionSlots = collect();
+            if (! empty($uncoveredElectives) && $student->currentSection) {
+                $crossSectionSlots = TimetableSlot::withoutGlobalScopes()
+                    ->where('school_id', $schoolId)
+                    ->where('day_of_week', $dayOfWeek)
+                    ->whereIn('subject_id', $uncoveredElectives)
+                    ->whereHas('section', fn($q) => $q->where('grade_level_id', $student->currentSection->grade_level_id))
+                    ->with(['subject', 'teacher'])
+                    ->get();
+            }
+
+            $timetableSlots = $sectionSlots->concat($crossSectionSlots)
+                ->sortBy('period_number')
+                ->values()
                 ->map(fn ($slot) => [
                     'id' => $slot->id,
                     'period_number' => $slot->period_number,
@@ -715,16 +746,46 @@ class DashboardService
                 'percentage' => $g->max_marks > 0 ? round(($g->marks_obtained / $g->max_marks) * 100, 1) : 0,
             ]);
 
-        // 3. Timetable for child's section
+        // 3. Timetable for child (core + selected electives, merging cross-section elective slots)
         $timetableSlots = collect();
         if ($selectedChild->current_section_id) {
-            $timetableSlots = TimetableSlot::withoutGlobalScopes()
+            $enrolledElectiveIds = StudentSubjectSelection::withoutGlobalScopes()
+                ->where('school_id', $schoolId)
+                ->where('student_id', $selectedChild->id)
+                ->where('status', 'enrolled')
+                ->pluck('subject_id')
+                ->all();
+
+            $sectionSlots = TimetableSlot::withoutGlobalScopes()
                 ->where('school_id', $schoolId)
                 ->where('section_id', $selectedChild->current_section_id)
                 ->where('day_of_week', $dayOfWeek)
-                ->orderBy('period_number')
                 ->with(['subject', 'teacher'])
                 ->get()
+                ->filter(function ($slot) use ($enrolledElectiveIds) {
+                    if (! $slot->subject || ! $slot->subject->is_elective) {
+                        return true;
+                    }
+                    return in_array($slot->subject_id, $enrolledElectiveIds);
+                });
+
+            $coveredElectives = $sectionSlots->filter(fn($s) => $s->subject?->is_elective)->pluck('subject_id')->unique()->all();
+            $uncoveredElectives = array_values(array_diff($enrolledElectiveIds, $coveredElectives));
+
+            $crossSectionSlots = collect();
+            if (! empty($uncoveredElectives) && $selectedChild->currentSection) {
+                $crossSectionSlots = TimetableSlot::withoutGlobalScopes()
+                    ->where('school_id', $schoolId)
+                    ->where('day_of_week', $dayOfWeek)
+                    ->whereIn('subject_id', $uncoveredElectives)
+                    ->whereHas('section', fn($q) => $q->where('grade_level_id', $selectedChild->currentSection->grade_level_id))
+                    ->with(['subject', 'teacher'])
+                    ->get();
+            }
+
+            $timetableSlots = $sectionSlots->concat($crossSectionSlots)
+                ->sortBy('period_number')
+                ->values()
                 ->map(fn ($slot) => [
                     'id' => $slot->id,
                     'period_number' => $slot->period_number,

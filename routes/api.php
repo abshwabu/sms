@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\ParentBillingController;
 use App\Http\Controllers\Api\PaymentReceiptController;
 use App\Http\Controllers\Api\ChapaWebhookController;
+use App\Http\Controllers\Api\ElectiveController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -133,6 +134,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/students/{student}', [StudentController::class, 'show'])->name('api.students.show');
         Route::get('/students/{student}/attendance', [AttendanceController::class, 'getStudentAttendanceSummary'])->name('api.students.attendance');
         Route::get('/students/{student}/attendance-summary', [AttendanceController::class, 'getStudentAttendanceSummary'])->name('api.students.attendance-summary');
+        Route::get('/students/{student}/timetable', [TimetableController::class, 'getStudentTimetable'])->name('api.students.timetable');
 
         // Student Self View
         Route::get('/student/attendance', [AttendanceController::class, 'getMyStudentAttendance'])->name('api.student.my-attendance');
@@ -141,6 +143,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/student/timetable', [TimetableController::class, 'getMyStudentTimetable'])->name('api.student.timetable');
         Route::get('/student/borrowed-books', [LibraryController::class, 'myBorrowedBooks'])->name('api.student.borrowed-books');
         Route::get('/student/transport', [TransportController::class, 'myStudentTransport'])->name('api.student.transport');
+        Route::get('/student/electives/available', [ElectiveController::class, 'getAvailableForStudent'])->name('api.student.electives.available');
+        Route::get('/student/electives', [ElectiveController::class, 'getMySelections'])->name('api.student.electives.index');
+        Route::post('/student/electives/select', [ElectiveController::class, 'studentSelect'])->name('api.student.electives.select');
+        Route::post('/student/electives/drop', [ElectiveController::class, 'studentDrop'])->name('api.student.electives.drop');
 
         // Parent Portal (Child switching & dashboard access)
         Route::prefix('parent')->group(function () {
@@ -155,6 +161,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/children/{student}/invoices', [ParentBillingController::class, 'invoices'])->name('api.parent.child-invoices');
             Route::get('/children/{student}/payments', [ParentBillingController::class, 'payments'])->name('api.parent.child-payments');
             Route::post('/invoices/{invoice}/pay-online', [ParentBillingController::class, 'payOnline'])->name('api.parent.invoices.pay-online');
+            Route::get('/children/{student}/electives/available', [ElectiveController::class, 'getAvailableForChild'])->name('api.parent.child-electives.available');
+            Route::get('/children/{student}/electives', [ElectiveController::class, 'getChildSelections'])->name('api.parent.child-electives.index');
+            Route::post('/children/{student}/electives/select', [ElectiveController::class, 'parentSelect'])->name('api.parent.child-electives.select');
+            Route::post('/children/{student}/electives/drop', [ElectiveController::class, 'parentDrop'])->name('api.parent.child-electives.drop');
         });
 
         // Payment Receipts (PDF download and browser preview)
@@ -307,6 +317,16 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('api.billing.invoices.show');
                 Route::post('/invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment'])->name('api.billing.invoices.payments.store');
                 Route::get('/collections', [InvoiceController::class, 'collections'])->name('api.billing.collections');
+            });
+
+            // Elective / Optional Subject Management (Prompt 17)
+            Route::prefix('electives')->group(function () {
+                Route::get('/offerings', [ElectiveController::class, 'indexOfferings'])->name('api.electives.offerings.index');
+                Route::post('/offerings', [ElectiveController::class, 'storeOffering'])->name('api.electives.offerings.store');
+                Route::put('/offerings/{subjectOffering}', [ElectiveController::class, 'updateOffering'])->name('api.electives.offerings.update');
+                Route::get('/offerings/{subjectOffering}/students', [ElectiveController::class, 'getOfferingStudents'])->name('api.electives.offerings.students');
+                Route::post('/offerings/{subjectOffering}/enroll', [ElectiveController::class, 'adminEnroll'])->name('api.electives.offerings.enroll');
+                Route::post('/offerings/{subjectOffering}/drop', [ElectiveController::class, 'adminDrop'])->name('api.electives.offerings.drop');
             });
         });
     });

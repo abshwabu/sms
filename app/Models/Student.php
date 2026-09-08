@@ -89,6 +89,19 @@ class Student extends Model
         return $this->hasManyThrough(Payment::class, Invoice::class);
     }
 
+    public function subjectSelections(): HasMany
+    {
+        return $this->hasMany(StudentSubjectSelection::class);
+    }
+
+    public function electiveSubjects(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'student_subject_selections', 'student_id', 'subject_id')
+            ->wherePivot('status', 'enrolled')
+            ->withPivot(['academic_year_id', 'status', 'selected_at', 'selected_by'])
+            ->withTimestamps();
+    }
+
     /**
      * Scope search across student name, email, and admission number.
      */

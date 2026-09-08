@@ -10,6 +10,7 @@ use App\Models\ReportCardItem;
 use App\Models\Section;
 use App\Models\SectionSubjectTeacher;
 use App\Models\Student;
+use App\Models\StudentSubjectSelection;
 use App\Models\Subject;
 use App\Models\Term;
 use App\Models\User;
@@ -163,10 +164,32 @@ class ReportCardService
         $reportCard->save();
 
         // Fetch subjects applicable to this grade level
-        $subjects = Subject::withoutGlobalScopes()
+        $allGradeSubjects = Subject::withoutGlobalScopes()
             ->where('school_id', $schoolId)
             ->where('grade_level_id', $gradeLevelId)
             ->get();
+
+        // Branching: core subjects are implicit for all; electives only if actively enrolled
+        $enrolledElectiveIds = StudentSubjectSelection::withoutGlobalScopes()
+            ->where('school_id', $schoolId)
+            ->where('student_id', $student->id)
+            ->where('academic_year_id', $term->academic_year_id)
+            ->where('status', 'enrolled')
+            ->pluck('subject_id')
+            ->all();
+
+        $subjects = $allGradeSubjects->filter(function ($subject) use ($enrolledElectiveIds) {
+            if (! $subject->is_elective) {
+                return true;
+            }
+            return in_array($subject->id, $enrolledElectiveIds);
+        });
+
+        // Prune any stale report card items for subjects the student is not enrolled in
+        $validSubjectIds = $subjects->pluck('id')->all();
+        ReportCardItem::where('report_card_id', $reportCard->id)
+            ->whereNotIn('subject_id', $validSubjectIds)
+            ->delete();
 
         // Fetch exams scheduled for this term and grade level
         $exams = Exam::withoutGlobalScopes()
