@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             TimetableSeeder::class,
             LibrarySeeder::class,
             TransportSeeder::class,
+            CommunicationSeeder::class,
         ]);
     }
 }

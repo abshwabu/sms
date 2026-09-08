@@ -18,6 +18,10 @@ use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SectionController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\StudentController;
+use App\Http\Controllers\Api\AnnouncementController;
+use App\Http\Controllers\Api\CommunicationController;
+use App\Http\Controllers\Api\NotificationCenterController;
+use App\Http\Controllers\Api\TelegramController;
 use App\Http\Controllers\Api\TermController;
 use App\Http\Controllers\Api\TimetableController;
 use App\Http\Controllers\Api\TransportController;
@@ -49,6 +53,9 @@ Route::prefix('auth')->group(function () {
 // Public Onboarding Endpoints
 Route::post('/invitations/accept', [InvitationController::class, 'accept'])->name('api.invitations.accept');
 Route::post('/claim-codes/claim', [ClaimCodeController::class, 'claim'])->name('api.claim-codes.claim');
+
+// Public Telegram Webhook Endpoint
+Route::post('/telegram/webhook/{school}', [TelegramController::class, 'webhook'])->name('api.telegram.webhook');
 
 // Authenticated Routes (Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
@@ -155,6 +162,42 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/fines', [LibraryController::class, 'fines'])->name('api.library.fines.index');
             Route::post('/fines/{fine}/pay', [LibraryController::class, 'payFine'])->name('api.library.fines.pay');
             Route::post('/fines/{fine}/waive', [LibraryController::class, 'waiveFine'])->name('api.library.fines.waive');
+        });
+
+        // Announcements (Prompt 12)
+        Route::prefix('announcements')->group(function () {
+            Route::get('/', [AnnouncementController::class, 'index'])->name('api.announcements.index');
+            Route::post('/', [AnnouncementController::class, 'store'])->name('api.announcements.store');
+            Route::get('/{announcement}', [AnnouncementController::class, 'show'])->name('api.announcements.show');
+            Route::put('/{announcement}', [AnnouncementController::class, 'update'])->name('api.announcements.update');
+            Route::delete('/{announcement}', [AnnouncementController::class, 'destroy'])->name('api.announcements.destroy');
+            Route::post('/{announcement}/publish', [AnnouncementController::class, 'publish'])->name('api.announcements.publish');
+            Route::get('/{announcement}/stats', [AnnouncementController::class, 'stats'])->name('api.announcements.stats');
+        });
+
+        // Direct Teacher-Parent Messaging per Student (Prompt 12)
+        Route::prefix('communications')->group(function () {
+            Route::get('/threads', [CommunicationController::class, 'threads'])->name('api.communications.threads.index');
+            Route::post('/threads', [CommunicationController::class, 'storeThread'])->name('api.communications.threads.store');
+            Route::get('/threads/{thread}', [CommunicationController::class, 'showThread'])->name('api.communications.threads.show');
+            Route::post('/threads/{thread}/messages', [CommunicationController::class, 'reply'])->name('api.communications.threads.reply');
+            Route::get('/students/{student}/threads', [CommunicationController::class, 'studentThreads'])->name('api.communications.students.threads');
+        });
+
+        // In-App Notification Center (Prompt 12)
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [NotificationCenterController::class, 'index'])->name('api.notifications.index');
+            Route::post('/{notification}/read', [NotificationCenterController::class, 'markRead'])->name('api.notifications.read');
+            Route::post('/read-all', [NotificationCenterController::class, 'markAllRead'])->name('api.notifications.read-all');
+            Route::delete('/{notification}', [NotificationCenterController::class, 'destroy'])->name('api.notifications.destroy');
+        });
+
+        // Telegram Integration (Prompt 12)
+        Route::prefix('telegram')->group(function () {
+            Route::get('/status', [TelegramController::class, 'status'])->name('api.telegram.status');
+            Route::post('/link-code', [TelegramController::class, 'generateLinkCode'])->name('api.telegram.link-code');
+            Route::post('/link', [TelegramController::class, 'linkAccount'])->name('api.telegram.link');
+            Route::post('/unlink', [TelegramController::class, 'unlinkAccount'])->name('api.telegram.unlink');
         });
 
         // School Calendar (Read)

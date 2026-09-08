@@ -166,10 +166,19 @@
               </div>
             </div>
 
-            <!-- Quick Status Pill -->
-            <div class="flex items-center gap-2 bg-slate-950/70 border border-slate-800 px-4 py-2 rounded-xl">
-              <span class="text-xs text-slate-400">Enrolled School:</span>
-              <span class="text-xs font-semibold text-slate-200">{{ authStore.schoolContext?.name || 'Greenwood High' }}</span>
+            <!-- Quick Actions & Status Pill -->
+            <div class="flex items-center gap-2">
+              <router-link
+                :to="`/communications?tab=messages&student_id=${parentStore.childDashboard.student.id}`"
+                class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition flex items-center gap-1.5 shadow-sm"
+              >
+                <span>💬</span>
+                <span>Message Teachers</span>
+              </router-link>
+              <div class="hidden sm:flex items-center gap-2 bg-slate-950/70 border border-slate-800 px-3 py-2 rounded-xl">
+                <span class="text-xs text-slate-400">School:</span>
+                <span class="text-xs font-semibold text-slate-200">{{ authStore.schoolContext?.name || 'Greenwood High' }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -249,8 +258,15 @@
                 <div class="text-sm font-semibold text-white mt-0.5">
                   {{ parentStore.childDashboard.student.current_section.homeroom_teacher?.name || 'Not yet assigned' }}
                 </div>
-                <div class="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                <div class="text-xs text-slate-400 mt-1 flex items-center justify-between">
                   <span>✉ {{ parentStore.childDashboard.student.current_section.homeroom_teacher?.email || 'N/A' }}</span>
+                  <router-link
+                    :to="`/communications?tab=messages&student_id=${parentStore.childDashboard.student.id}`"
+                    class="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 transition flex items-center gap-1"
+                  >
+                    <span>💬</span>
+                    <span>Chat</span>
+                  </router-link>
                 </div>
               </div>
             </div>

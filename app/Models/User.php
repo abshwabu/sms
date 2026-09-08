@@ -115,6 +115,46 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Linked Telegram account for school notifications.
+     */
+    public function telegramAccount(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(TelegramAccount::class);
+    }
+
+    /**
+     * In-app notification center records.
+     */
+    public function inAppNotifications(): HasMany
+    {
+        return $this->hasMany(InAppNotification::class);
+    }
+
+    /**
+     * Unread in-app notifications.
+     */
+    public function unreadInAppNotifications(): HasMany
+    {
+        return $this->hasMany(InAppNotification::class)->whereNull('read_at');
+    }
+
+    /**
+     * Announcements authored by this user.
+     */
+    public function announcements(): HasMany
+    {
+        return $this->hasMany(Announcement::class, 'author_id');
+    }
+
+    /**
+     * Direct message threads initiated by this user.
+     */
+    public function createdCommunicationThreads(): HasMany
+    {
+        return $this->hasMany(CommunicationThread::class, 'created_by');
+    }
+
+    /**
      * Check if the user is a platform-wide Super Admin.
      */
     public function isSuperAdmin(): bool
