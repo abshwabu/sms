@@ -82,6 +82,14 @@
           title="Linked"
         ></span>
       </button>
+      <button
+        @click="openPreferencesTab"
+        class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5"
+        :class="activeTab === 'preferences' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white bg-slate-900 border border-slate-800'"
+      >
+        <span>🔔</span>
+        <span>Notification Preferences</span>
+      </button>
     </div>
 
     <!-- TAB 1: ANNOUNCEMENTS -->
@@ -369,6 +377,283 @@
             class="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold transition flex items-center justify-center gap-2"
           >
             <span>✈️ Generate Telegram Connection Link</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: NOTIFICATION PREFERENCES (PROMPT 14) -->
+    <div v-if="activeTab === 'preferences'" class="space-y-6">
+      <div v-if="commStore.loadingPreferences" class="text-center py-12 text-slate-500 text-sm">
+        Loading notification preferences...
+      </div>
+
+      <div v-else-if="prefForm" class="max-w-3xl space-y-6">
+        <!-- Channels Card -->
+        <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 space-y-5">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>📡</span>
+              <span>Delivery Channels</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">
+              Select which channels you want to receive school notifications through.
+            </p>
+          </div>
+
+          <div class="divide-y divide-slate-800/80">
+            <!-- In-App (Always On) -->
+            <div class="py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <span>In-App Notification Center</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">Always Active</span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Notification bell dropdown in the top header and dashboard alerts.
+                </div>
+              </div>
+              <div class="w-10 h-5 bg-indigo-600/50 rounded-full flex items-center px-1 opacity-70 cursor-not-allowed" title="In-App is always active">
+                <div class="w-3.5 h-3.5 bg-white rounded-full translate-x-4"></div>
+              </div>
+            </div>
+
+            <!-- Email Toggle -->
+            <div class="py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-semibold text-white">Email Notifications</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Queue and send email alerts to <span class="text-slate-300 font-mono">{{ authStore.user?.email }}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="prefForm.email_enabled = !prefForm.email_enabled"
+                class="w-10 h-5 rounded-full transition-colors relative focus:outline-none"
+                :class="prefForm.email_enabled ? 'bg-indigo-600' : 'bg-slate-800'"
+              >
+                <span
+                  class="block w-3.5 h-3.5 bg-white rounded-full transition-transform transform shadow-sm"
+                  :class="prefForm.email_enabled ? 'translate-x-5' : 'translate-x-1'"
+                ></span>
+              </button>
+            </div>
+
+            <!-- Telegram Toggle -->
+            <div class="py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-semibold text-white flex items-center gap-2">
+                  <span>Telegram Bot Dispatches</span>
+                  <span
+                    v-if="commStore.telegramStatus?.is_linked"
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono"
+                  >
+                    @{{ commStore.telegramStatus?.telegram_username || 'Linked' }}
+                  </span>
+                  <span
+                    v-else
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono"
+                  >
+                    Not Linked
+                  </span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Receive instant announcements and absence alerts on Telegram via school bot.
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="prefForm.telegram_enabled = !prefForm.telegram_enabled"
+                class="w-10 h-5 rounded-full transition-colors relative focus:outline-none"
+                :class="prefForm.telegram_enabled ? 'bg-sky-600' : 'bg-slate-800'"
+              >
+                <span
+                  class="block w-3.5 h-3.5 bg-white rounded-full transition-transform transform shadow-sm"
+                  :class="prefForm.telegram_enabled ? 'translate-x-5' : 'translate-x-1'"
+                ></span>
+              </button>
+            </div>
+
+            <!-- SMS Alerts Hook Point -->
+            <div class="py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <span>SMS Alerts</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Gateway Hook</span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Direct mobile SMS delivery for urgent school notices and absence alerts.
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="prefForm.sms_enabled = !prefForm.sms_enabled"
+                class="w-10 h-5 rounded-full transition-colors relative focus:outline-none"
+                :class="prefForm.sms_enabled ? 'bg-indigo-600' : 'bg-slate-800'"
+              >
+                <span
+                  class="block w-3.5 h-3.5 bg-white rounded-full transition-transform transform shadow-sm"
+                  :class="prefForm.sms_enabled ? 'translate-x-5' : 'translate-x-1'"
+                ></span>
+              </button>
+            </div>
+
+            <!-- Mobile Push Alerts Hook Point -->
+            <div class="py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <span>Mobile Push Notifications</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Mobile Hook</span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Push notifications dispatched to registered mobile devices.
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="prefForm.push_enabled = !prefForm.push_enabled"
+                class="w-10 h-5 rounded-full transition-colors relative focus:outline-none"
+                :class="prefForm.push_enabled ? 'bg-indigo-600' : 'bg-slate-800'"
+              >
+                <span
+                  class="block w-3.5 h-3.5 bg-white rounded-full transition-transform transform shadow-sm"
+                  :class="prefForm.push_enabled ? 'translate-x-5' : 'translate-x-1'"
+                ></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notification Categories Card -->
+        <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 space-y-5">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>🔔</span>
+              <span>Event Categories</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">
+              Choose which events trigger automated notifications to your enabled channels.
+            </p>
+          </div>
+
+          <div class="divide-y divide-slate-800/80">
+            <!-- Attendance & Absence Alerts -->
+            <div class="py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-semibold text-white">Daily Attendance &amp; Absence Alerts</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Instant alert when your student is marked absent or late during daily roll call.
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="prefForm.attendance_alerts = !prefForm.attendance_alerts"
+                class="w-10 h-5 rounded-full transition-colors relative focus:outline-none"
+                :class="prefForm.attendance_alerts ? 'bg-indigo-600' : 'bg-slate-800'"
+              >
+                <span
+                  class="block w-3.5 h-3.5 bg-white rounded-full transition-transform transform shadow-sm"
+                  :class="prefForm.attendance_alerts ? 'translate-x-5' : 'translate-x-1'"
+                ></span>
+              </button>
+            </div>
+
+            <!-- Grade & Report Card Alerts -->
+            <div class="py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-semibold text-white">Grade &amp; Report Card Alerts</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Notification when official term report cards and exam results are published.
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="prefForm.grade_alerts = !prefForm.grade_alerts"
+                class="w-10 h-5 rounded-full transition-colors relative focus:outline-none"
+                :class="prefForm.grade_alerts ? 'bg-indigo-600' : 'bg-slate-800'"
+              >
+                <span
+                  class="block w-3.5 h-3.5 bg-white rounded-full transition-transform transform shadow-sm"
+                  :class="prefForm.grade_alerts ? 'translate-x-5' : 'translate-x-1'"
+                ></span>
+              </button>
+            </div>
+
+            <!-- School Announcements -->
+            <div class="py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-semibold text-white">School Announcements &amp; Bulletins</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Broadcast bulletins and grade-targeted school communications.
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="prefForm.announcement_alerts = !prefForm.announcement_alerts"
+                class="w-10 h-5 rounded-full transition-colors relative focus:outline-none"
+                :class="prefForm.announcement_alerts ? 'bg-indigo-600' : 'bg-slate-800'"
+              >
+                <span
+                  class="block w-3.5 h-3.5 bg-white rounded-full transition-transform transform shadow-sm"
+                  :class="prefForm.announcement_alerts ? 'translate-x-5' : 'translate-x-1'"
+                ></span>
+              </button>
+            </div>
+
+            <!-- Library Alerts -->
+            <div class="py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-semibold text-white">Library Loan &amp; Due Date Alerts</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Reminders for book return due dates and overdue fines.
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="prefForm.library_alerts = !prefForm.library_alerts"
+                class="w-10 h-5 rounded-full transition-colors relative focus:outline-none"
+                :class="prefForm.library_alerts ? 'bg-indigo-600' : 'bg-slate-800'"
+              >
+                <span
+                  class="block w-3.5 h-3.5 bg-white rounded-full transition-transform transform shadow-sm"
+                  :class="prefForm.library_alerts ? 'translate-x-5' : 'translate-x-1'"
+                ></span>
+              </button>
+            </div>
+
+            <!-- Direct Messages -->
+            <div class="py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-semibold text-white">Direct Teacher-Parent Messages</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Alerts when a teacher or parent sends a new reply in a student conversation thread.
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="prefForm.message_alerts = !prefForm.message_alerts"
+                class="w-10 h-5 rounded-full transition-colors relative focus:outline-none"
+                :class="prefForm.message_alerts ? 'bg-indigo-600' : 'bg-slate-800'"
+              >
+                <span
+                  class="block w-3.5 h-3.5 bg-white rounded-full transition-transform transform shadow-sm"
+                  :class="prefForm.message_alerts ? 'translate-x-5' : 'translate-x-1'"
+                ></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            @click="savePreferences"
+            :disabled="commStore.actionLoading"
+            class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs transition flex items-center gap-2 shadow-sm active:scale-[0.98]"
+          >
+            <span v-if="commStore.actionLoading">Saving...</span>
+            <span v-else>💾 Save Preferences</span>
           </button>
         </div>
       </div>
@@ -725,6 +1010,41 @@ async function unlinkTelegram() {
   await commStore.unlinkTelegram();
 }
 
+// Notification Preferences (Prompt 14)
+const prefForm = ref({
+  email_enabled: true,
+  telegram_enabled: true,
+  sms_enabled: false,
+  push_enabled: false,
+  attendance_alerts: true,
+  grade_alerts: true,
+  announcement_alerts: true,
+  library_alerts: true,
+  message_alerts: true,
+});
+
+async function openPreferencesTab() {
+  activeTab.value = 'preferences';
+  const prefs = await commStore.fetchPreferences();
+  if (prefs) {
+    prefForm.value = {
+      email_enabled: Boolean(prefs.email_enabled),
+      telegram_enabled: Boolean(prefs.telegram_enabled),
+      sms_enabled: Boolean(prefs.sms_enabled),
+      push_enabled: Boolean(prefs.push_enabled),
+      attendance_alerts: Boolean(prefs.attendance_alerts),
+      grade_alerts: Boolean(prefs.grade_alerts),
+      announcement_alerts: Boolean(prefs.announcement_alerts),
+      library_alerts: Boolean(prefs.library_alerts),
+      message_alerts: Boolean(prefs.message_alerts),
+    };
+  }
+}
+
+async function savePreferences() {
+  await commStore.updatePreferences(prefForm.value);
+}
+
 async function loadMetadata() {
   try {
     const [gRes, sRes, stuRes] = await Promise.all([
@@ -749,7 +1069,12 @@ onMounted(async () => {
   ]);
 
   if (route.query.tab) {
-    activeTab.value = String(route.query.tab);
+    const tab = String(route.query.tab);
+    if (tab === 'preferences') {
+      await openPreferencesTab();
+    } else {
+      activeTab.value = tab;
+    }
   }
 
   if (route.query.student_id) {

@@ -61,6 +61,9 @@ class AbsenceNotificationHook
         // Dispatch domain event
         event(new StudentMarkedAbsent($student, $record, $record->marker, $record->remarks));
 
+        // Trigger unified cross-cutting notification pipeline (in-app + email if enabled)
+        app(NotificationPipelineService::class)->notifyAbsence($student, $record);
+
         // Execute any registered custom hooks
         foreach (static::$handlers as $handler) {
             try {

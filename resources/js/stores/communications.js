@@ -11,6 +11,8 @@ export const useCommunicationsStore = defineStore('communications', {
         unreadCount: 0,
         telegramStatus: null,
         telegramLinkData: null,
+        preferences: null,
+        loadingPreferences: false,
         loading: false,
         actionLoading: false,
         error: null,
@@ -222,6 +224,37 @@ export const useCommunicationsStore = defineStore('communications', {
                 await this.fetchTelegramStatus();
             } catch (err) {
                 this.error = err.response?.data?.error?.message || 'Failed to unlink Telegram.';
+                throw err;
+            } finally {
+                this.actionLoading = false;
+            }
+        },
+
+        // --- Unified Notification Preferences (Prompt 14) ---
+        async fetchPreferences() {
+            this.loadingPreferences = true;
+            try {
+                const res = await axios.get('/notifications/preferences');
+                this.preferences = res.data.data;
+                return this.preferences;
+            } catch (err) {
+                this.error = err.response?.data?.error?.message || 'Failed to load notification preferences.';
+                return null;
+            } finally {
+                this.loadingPreferences = false;
+            }
+        },
+
+        async updatePreferences(data) {
+            this.actionLoading = true;
+            this.clearMessages();
+            try {
+                const res = await axios.put('/notifications/preferences', data);
+                this.preferences = res.data.data;
+                this.successMessage = 'Notification preferences updated successfully!';
+                return res.data.data;
+            } catch (err) {
+                this.error = err.response?.data?.error?.message || 'Failed to update notification preferences.';
                 throw err;
             } finally {
                 this.actionLoading = false;

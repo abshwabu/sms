@@ -13,6 +13,7 @@ use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Term;
 use App\Models\User;
+use App\Services\NotificationPipelineService;
 use App\Tenancy\Exceptions\ClosedAcademicYearException;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DomPdfWrapper;
@@ -372,7 +373,12 @@ class ReportCardService
         }
 
         $reportCard->update($payload);
-        return $reportCard->fresh();
+        $fresh = $reportCard->fresh();
+
+        // Trigger unified cross-cutting notification pipeline (in-app + email if enabled)
+        app(NotificationPipelineService::class)->notifyReportCardPublished($fresh);
+
+        return $fresh;
     }
 
     /**
@@ -380,14 +386,25 @@ class ReportCardService
      */
     public function publishSectionReportCards(Section $section, Term $term): int
     {
-        return ReportCard::withoutGlobalScopes()
+        $cards = ReportCard::withoutGlobalScopes()
             ->where('school_id', $section->school_id)
             ->where('section_id', $section->id)
             ->where('term_id', $term->id)
-            ->update([
+            ->get();
+
+        $pipeline = app(NotificationPipelineService::class);
+        $count = 0;
+
+        foreach ($cards as $card) {
+            $card->update([
                 'status' => 'published',
                 'published_at' => now(),
             ]);
+            $pipeline->notifyReportCardPublished($card);
+            $count++;
+        }
+
+        return $count;
     }
 
     /**

@@ -139,6 +139,22 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Cross-cutting unified notifications.
+     */
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    /**
+     * User's notification preferences.
+     */
+    public function notificationPreference(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(NotificationPreference::class);
+    }
+
+    /**
      * Announcements authored by this user.
      */
     public function announcements(): HasMany

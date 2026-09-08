@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\CommunicationController;
 use App\Http\Controllers\Api\NotificationCenterController;
+use App\Http\Controllers\Api\NotificationPreferenceController;
 use App\Http\Controllers\Api\TelegramController;
 use App\Http\Controllers\Api\TermController;
 use App\Http\Controllers\Api\TimetableController;
@@ -186,9 +187,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/students/{student}/threads', [CommunicationController::class, 'studentThreads'])->name('api.communications.students.threads');
         });
 
-        // In-App Notification Center (Prompt 12)
+        // In-App Notification Center & Preferences (Prompt 12 & 14)
         Route::prefix('notifications')->group(function () {
             Route::get('/', [NotificationCenterController::class, 'index'])->name('api.notifications.index');
+            Route::get('/preferences', [NotificationPreferenceController::class, 'show'])->name('api.notifications.preferences.show');
+            Route::put('/preferences', [NotificationPreferenceController::class, 'update'])->name('api.notifications.preferences.update');
             Route::post('/{notification}/read', [NotificationCenterController::class, 'markRead'])->name('api.notifications.read');
             Route::post('/read-all', [NotificationCenterController::class, 'markAllRead'])->name('api.notifications.read-all');
             Route::delete('/{notification}', [NotificationCenterController::class, 'destroy'])->name('api.notifications.destroy');
