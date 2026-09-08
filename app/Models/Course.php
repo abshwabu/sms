@@ -34,4 +34,10 @@ class Course extends Model
             'is_active' => 'boolean',
         ];
     }
+
+    public function staff(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Staff::class, 'course_staff')
+            ->withTimestamps();
+    }
 }

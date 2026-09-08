@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\SchoolAdminController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SectionController;
+use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\TermController;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +60,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/grade-levels/{gradeLevel}', [GradeLevelController::class, 'show'])->name('api.grade-levels.show');
         Route::get('/sections', [SectionController::class, 'index'])->name('api.sections.index');
         Route::get('/sections/{section}', [SectionController::class, 'show'])->name('api.sections.show');
+        Route::get('/sections/{section}/roster', [SectionController::class, 'roster'])->name('api.sections.roster');
+        Route::get('/sections/{section}/permissions', [SectionController::class, 'permissions'])->name('api.sections.permissions');
+        Route::post('/sections/{section}/attendance', [SectionController::class, 'recordAttendance'])->name('api.sections.attendance');
+        Route::post('/sections/{section}/grades', [SectionController::class, 'recordGrades'])->name('api.sections.grades');
+
+        // Staff Directory (Read)
+        Route::get('/staff', [StaffController::class, 'index'])->name('api.staff.index');
+        Route::get('/staff/{staff}', [StaffController::class, 'show'])->name('api.staff.show');
 
         // Students (Read)
         Route::get('/students', [StudentController::class, 'index'])->name('api.students.index');
@@ -93,6 +102,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/sections/{section}', [SectionController::class, 'destroy'])->name('api.sections.destroy');
             Route::post('/sections/{section}/assign-student', [SectionController::class, 'assignStudent'])->name('api.sections.assign-student');
             Route::post('/sections/promote', [SectionController::class, 'promote'])->name('api.sections.promote');
+            Route::post('/sections/{section}/assign-homeroom', [SectionController::class, 'assignHomeroom'])->name('api.sections.assign-homeroom');
+            Route::post('/sections/{section}/assign-subject-teacher', [SectionController::class, 'assignSubjectTeacher'])->name('api.sections.assign-subject-teacher');
+            Route::delete('/sections/{section}/subject-teachers/{assignment}', [SectionController::class, 'removeSubjectTeacher'])->name('api.sections.remove-subject-teacher');
+
+            // Staff Management (Write)
+            Route::post('/staff', [StaffController::class, 'store'])->name('api.staff.store');
+            Route::put('/staff/{staff}', [StaffController::class, 'update'])->name('api.staff.update');
+            Route::delete('/staff/{staff}', [StaffController::class, 'destroy'])->name('api.staff.destroy');
 
             // Student Management & Enrollment (Write)
             Route::post('/students', [StudentController::class, 'store'])->name('api.students.store');

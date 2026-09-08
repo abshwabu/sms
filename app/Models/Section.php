@@ -71,6 +71,92 @@ class Section extends Model
         return $this->hasMany(Enrollment::class);
     }
 
+    public function subjectTeachers(): HasMany
+    {
+        return $this->hasMany(SectionSubjectTeacher::class);
+    }
+
+    /**
+     * Determine if a user or staff member is the homeroom teacher of this section.
+     */
+    public function isHomeroomTeacher(User|Staff|int $userOrStaff): bool
+    {
+        $userId = $this->resolveUserId($userOrStaff);
+        return $userId !== null && (int) $this->homeroom_teacher_id === (int) $userId;
+    }
+
+    /**
+     * Determine if a user or staff member teaches in this section (homeroom or subject).
+     */
+    public function hasTeacher(User|Staff|int $userOrStaff): bool
+    {
+        if ($this->isHomeroomTeacher($userOrStaff)) {
+            return true;
+        }
+
+        $staffId = $this->resolveStaffId($userOrStaff);
+        if (! $staffId) {
+            return false;
+        }
+
+        return $this->subjectTeachers()->where('staff_id', $staffId)->exists();
+    }
+
+    /**
+     * Check if a teacher can enter attendance for this section.
+     * Homeroom teacher or any assigned subject teacher can record attendance.
+     */
+    public function canTeacherTakeAttendance(User|Staff|int $userOrStaff): bool
+    {
+        return $this->hasTeacher($userOrStaff);
+    }
+
+    /**
+     * Check if a teacher can enter grades for a specific subject in this section.
+     * Homeroom teacher has master grading oversight, or assigned subject teacher.
+     */
+    public function canTeacherGrade(User|Staff|int $userOrStaff, ?int $courseId = null): bool
+    {
+        if ($this->isHomeroomTeacher($userOrStaff)) {
+            return true;
+        }
+
+        $staffId = $this->resolveStaffId($userOrStaff);
+        if (! $staffId) {
+            return false;
+        }
+
+        $query = $this->subjectTeachers()->where('staff_id', $staffId);
+
+        if ($courseId !== null) {
+            $query->where('course_id', $courseId);
+        }
+
+        return $query->exists();
+    }
+
+    protected function resolveUserId(User|Staff|int $userOrStaff): ?int
+    {
+        if ($userOrStaff instanceof User) {
+            return $userOrStaff->id;
+        }
+        if ($userOrStaff instanceof Staff) {
+            return $userOrStaff->user_id;
+        }
+        return (int) $userOrStaff;
+    }
+
+    protected function resolveStaffId(User|Staff|int $userOrStaff): ?int
+    {
+        if ($userOrStaff instanceof Staff) {
+            return $userOrStaff->id;
+        }
+        if ($userOrStaff instanceof User) {
+            return $userOrStaff->staff?->id ?? Staff::where('user_id', $userOrStaff->id)->value('id');
+        }
+        return (int) $userOrStaff;
+    }
+
     public function enrolledCount(): int
     {
         $count = $this->enrollments()->where('status', 'enrolled')->count();

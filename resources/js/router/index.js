@@ -7,6 +7,7 @@ import AuthView from '../views/AuthView.vue';
 import OnboardingView from '../views/OnboardingView.vue';
 import AcademicView from '../views/AcademicView.vue';
 import StudentsView from '../views/StudentsView.vue';
+import StaffView from '../views/StaffView.vue';
 
 const routes = [
     {
@@ -18,6 +19,11 @@ const routes = [
         path: '/students',
         name: 'students',
         component: StudentsView,
+    },
+    {
+        path: '/staff',
+        name: 'staff',
+        component: StaffView,
     },
     {
         path: '/academic',
