@@ -196,11 +196,11 @@
 
           <!-- User Status Badge -->
           <router-link 
-            to="/auth"
+            :to="authStore.isAuthenticated ? '/auth' : '/login'"
             class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-xs transition"
             :class="authStore.isAuthenticated 
               ? 'bg-slate-800/80 border-slate-700 text-slate-200 hover:border-slate-600' 
-              : 'bg-indigo-600 text-white border-indigo-500 font-semibold shadow-sm'"
+              : 'bg-indigo-600 text-white border-indigo-500 font-semibold shadow-sm hover:bg-indigo-500'"
           >
             <span v-if="authStore.isAuthenticated" class="w-2 h-2 rounded-full bg-emerald-400"></span>
             <span class="truncate max-w-[120px] sm:max-w-none">
@@ -248,6 +248,8 @@ const notificationRef = ref(null);
 
 const routeMap = {
   '/': { title: 'Executive Dashboard', category: 'Overview' },
+  '/login': { title: 'Sign In to Portal', category: 'Authentication' },
+  '/register': { title: 'Register Account / School', category: 'Authentication' },
   '/health': { title: 'System Diagnostics & Isolation', category: 'Overview' },
   '/academic': { title: 'Academic Structure & Terms', category: 'Academics' },
   '/courses': { title: 'Courses & Subject Isolation', category: 'Academics' },

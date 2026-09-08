@@ -49,6 +49,32 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
+        async register(payload) {
+            this.loading = true;
+            this.error = null;
+            try {
+                const res = await axios.post('/auth/register', payload);
+                const { token, user } = res.data.data;
+
+                this.token = token;
+                this.user = user;
+                localStorage.setItem('auth_token', token);
+                localStorage.setItem('auth_user', JSON.stringify(user));
+
+                const tenantStore = useTenantStore();
+                if (user.school) {
+                    tenantStore.selectSchool(user.school);
+                }
+
+                return { success: true, user };
+            } catch (err) {
+                this.error = err.response?.data?.error?.message || err.response?.data?.message || 'Registration failed.';
+                return { success: false, error: this.error };
+            } finally {
+                this.loading = false;
+            }
+        },
+
         async logout() {
             try {
                 if (this.token) {

@@ -1,17 +1,21 @@
 <template>
-  <div class="space-y-8">
+  <div class="space-y-6">
     <!-- Top Greeting & Role Switcher / Context Bar -->
     <div class="rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 p-6 border border-slate-800 shadow-sm">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div class="flex items-center gap-2 mb-2">
+          <div class="flex flex-wrap items-center gap-2 mb-2 text-xs text-slate-400">
+            <span class="font-mono text-[11px] text-indigo-400 font-semibold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+              {{ liveDate }}
+            </span>
+            <span>&bull;</span>
             <span 
               class="text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold border"
               :class="roleBadgeClasses"
             >
               {{ roleLabel }}
             </span>
-            <span v-if="dashboardStore.data?.school" class="text-xs text-slate-400">
+            <span v-if="dashboardStore.data?.school" class="text-xs text-slate-300">
               &bull; {{ dashboardStore.data.school.name }}
             </span>
             <span v-if="dashboardStore.activeRoleView" class="text-xs text-amber-400 font-medium bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
@@ -88,6 +92,127 @@
       </div>
     </div>
 
+    <!-- Quick Action Launchpad (When Authenticated) -->
+    <div v-if="authStore.isAuthenticated" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <router-link
+        to="/attendance"
+        class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/40 hover:bg-slate-800/60 transition group flex flex-col justify-between shadow-sm"
+      >
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <polyline points="16 11 18 13 22 9" />
+            </svg>
+          </div>
+          <span class="text-[10px] text-slate-500 group-hover:text-indigo-400 transition">&rarr;</span>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-white group-hover:text-indigo-300 transition">Attendance</div>
+          <div class="text-[10px] text-slate-400 truncate">Daily &amp; Period</div>
+        </div>
+      </router-link>
+
+      <router-link
+        to="/grading"
+        class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 hover:bg-slate-800/60 transition group flex flex-col justify-between shadow-sm"
+      >
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 11l3 3L22 4" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12v7a2 2 0 01-2 2H5a2 2 0 012-2h11" />
+            </svg>
+          </div>
+          <span class="text-[10px] text-slate-500 group-hover:text-emerald-400 transition">&rarr;</span>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-white group-hover:text-emerald-300 transition">Grading</div>
+          <div class="text-[10px] text-slate-400 truncate">Report Cards &amp; GPA</div>
+        </div>
+      </router-link>
+
+      <router-link
+        to="/timetable"
+        class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-sky-500/40 hover:bg-slate-850 transition group flex flex-col justify-between shadow-sm"
+      >
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center group-hover:scale-105 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </div>
+          <span class="text-[10px] text-slate-500 group-hover:text-sky-400 transition">&rarr;</span>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-white group-hover:text-sky-300 transition">Timetable</div>
+          <div class="text-[10px] text-slate-400 truncate">Weekly Schedule</div>
+        </div>
+      </router-link>
+
+      <router-link
+        to="/communications"
+        class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-rose-500/40 hover:bg-slate-850 transition group flex flex-col justify-between shadow-sm"
+      >
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center group-hover:scale-105 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
+          </div>
+          <span class="text-[10px] text-slate-500 group-hover:text-rose-400 transition">&rarr;</span>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-white group-hover:text-rose-300 transition">Communications</div>
+          <div class="text-[10px] text-slate-400 truncate">Notices &amp; Messages</div>
+        </div>
+      </router-link>
+
+      <router-link
+        to="/students"
+        class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-purple-500/40 hover:bg-slate-850 transition group flex flex-col justify-between shadow-sm"
+      >
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center group-hover:scale-105 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 00-3-3.87" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 3.13a4 4 0 010 7.75" />
+            </svg>
+          </div>
+          <span class="text-[10px] text-slate-500 group-hover:text-purple-400 transition">&rarr;</span>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-white group-hover:text-purple-300 transition">Students</div>
+          <div class="text-[10px] text-slate-400 truncate">Roster &amp; Profiles</div>
+        </div>
+      </router-link>
+
+      <router-link
+        to="/library"
+        class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-850 transition group flex flex-col justify-between shadow-sm"
+      >
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center group-hover:scale-105 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 19.5v-15A2.5 2.5 0 016.5 2H20v20H6.5a2.5 2.5 0 01-2.5-2.5Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h10M6 10h10" />
+            </svg>
+          </div>
+          <span class="text-[10px] text-slate-500 group-hover:text-amber-400 transition">&rarr;</span>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-white group-hover:text-amber-300 transition">Library</div>
+          <div class="text-[10px] text-slate-400 truncate">Catalog &amp; Loans</div>
+        </div>
+      </router-link>
+    </div>
+
     <!-- Error Banner -->
     <div v-if="dashboardStore.error" class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center justify-between">
       <div class="flex items-center gap-2">
@@ -117,10 +242,10 @@
         </p>
 
         <!-- Quick 1-Click Persona Sign-In Buttons -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6 text-left">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-6 text-left">
           <button
             @click="demoLogin('admin@greenwood.edu')"
-            class="p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-950/20 hover:bg-indigo-900/30 transition group"
+            class="p-3 rounded-xl border border-indigo-500/30 bg-indigo-950/20 hover:bg-indigo-900/30 transition group"
           >
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold text-white group-hover:text-indigo-300">🏢 School Admin</span>
@@ -131,7 +256,7 @@
 
           <button
             @click="demoLogin('teacher@greenwood.edu')"
-            class="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 hover:bg-emerald-900/30 transition group"
+            class="p-3 rounded-xl border border-emerald-500/30 bg-emerald-950/20 hover:bg-emerald-900/30 transition group"
           >
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold text-white group-hover:text-emerald-300">👨‍🏫 Teacher</span>
@@ -142,7 +267,7 @@
 
           <button
             @click="demoLogin('parent@greenwood.edu')"
-            class="p-3.5 rounded-xl border border-amber-500/30 bg-amber-950/20 hover:bg-amber-900/30 transition group"
+            class="p-3 rounded-xl border border-amber-500/30 bg-amber-950/20 hover:bg-amber-900/30 transition group"
           >
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold text-white group-hover:text-amber-300">👨‍👧‍👦 Parent</span>
@@ -153,7 +278,7 @@
 
           <button
             @click="demoLogin('bart.simpson@greenwood.edu')"
-            class="p-3.5 rounded-xl border border-sky-500/30 bg-sky-950/20 hover:bg-sky-900/30 transition group"
+            class="p-3 rounded-xl border border-sky-500/30 bg-sky-950/20 hover:bg-sky-900/30 transition group"
           >
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold text-white group-hover:text-sky-300">🎓 Student</span>
@@ -161,14 +286,38 @@
             </div>
             <p class="text-[11px] text-slate-400 mt-1">Today's classes, recent marks, library loans</p>
           </button>
+
+          <button
+            @click="demoLogin('superadmin@bina.test')"
+            class="p-3 rounded-xl border border-purple-500/30 bg-purple-950/20 hover:bg-purple-900/30 transition group sm:col-span-2 lg:col-span-2"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-white group-hover:text-purple-300">⚡ Platform Super-Admin</span>
+              <span class="text-[10px] text-purple-400 font-mono">1-Click</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Cross-tenant overview, system metrics, all school databases</p>
+          </button>
         </div>
 
-        <div class="mt-6 pt-6 border-t border-slate-800/80 flex items-center justify-center gap-3">
+        <div class="mt-6 pt-6 border-t border-slate-800/80 flex flex-wrap items-center justify-center gap-3">
           <router-link
-            to="/auth"
-            class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold border border-slate-700 transition"
+            to="/login"
+            class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-semibold shadow-sm transition flex items-center gap-2"
           >
-            Sign In with Password &rarr;
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            <span>Sign In to Portal</span>
+          </router-link>
+
+          <router-link
+            to="/register"
+            class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700/80 transition flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span>Register New School</span>
           </router-link>
         </div>
       </div>
@@ -1129,6 +1278,11 @@ import { useDashboardStore } from '../stores/dashboard';
 const authStore = useAuthStore();
 const tenantStore = useTenantStore();
 const dashboardStore = useDashboardStore();
+
+const liveDate = computed(() => {
+  const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+  return new Date().toLocaleDateString('en-US', options);
+});
 
 const currentActiveRole = computed(() => {
   return dashboardStore.activeRoleView || dashboardStore.data?.role || authStore.role || 'guest';

@@ -2,19 +2,26 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\RoleEnum;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Responses\ApiResponse;
 use App\Http\Traits\HasApiResponse;
+use App\Models\ParentProfile;
+use App\Models\School;
+use App\Models\Staff;
 use App\Models\User;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
@@ -23,6 +30,7 @@ class AuthController extends Controller
 
     public function __construct(
         protected TenantManager $tenantManager
+
     ) {}
 
     /**
@@ -107,9 +115,120 @@ class AuthController extends Controller
     }
 
     /**
+     * Register a new user and optionally create a new school tenant.
+     */
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        return DB::transaction(function () use ($validated) {
+            $school = null;
+
+            // Scenario A: User is creating a brand new school tenant
+            if (! empty($validated['new_school_name'])) {
+                $baseSlug = Str::slug($validated['new_school_name']);
+                $subdomain = $baseSlug ?: 'school';
+                $counter = 1;
+                while (School::where('subdomain', $subdomain)->exists()) {
+                    $subdomain = ($baseSlug ?: 'school') . '-' . $counter;
+                    $counter++;
+                }
+
+                $school = School::create([
+                    'name' => $validated['new_school_name'],
+                    'subdomain' => $subdomain,
+                    'subscription_status' => 'active',
+                    'timezone' => config('app.timezone', 'UTC'),
+                ]);
+
+                // When creating a new school, the registrant is automatically the school_admin
+                $role = RoleEnum::SCHOOL_ADMIN->value;
+            } elseif (! empty($validated['school_id'])) {
+                // Scenario B: User is registering under an existing school
+                $school = School::findOrFail($validated['school_id']);
+                $role = $validated['role'] ?? RoleEnum::PARENT->value;
+            } else {
+                // Scenario C: Default fallback
+                $role = $validated['role'] ?? RoleEnum::PARENT->value;
+            }
+
+            // Create User
+            $user = User::create([
+                'school_id' => $school?->id,
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'password' => Hash::make($validated['password']),
+                'role' => $role,
+                'status' => UserStatus::ACTIVE,
+                'last_login_at' => now(),
+            ]);
+
+            // Assign Spatie role if exists
+            try {
+                $user->assignRole($role);
+            } catch (\Throwable) {
+                // Ignore if Spatie roles are dynamically managed
+            }
+
+            // Set active tenant if created or resolved BEFORE creating any tenant-scoped models
+            if ($school) {
+                $this->tenantManager->setTenant($school);
+            }
+
+            // Create associated role profile if applicable
+            if ($role === RoleEnum::PARENT->value && $school) {
+                ParentProfile::firstOrCreate([
+                    'school_id' => $school->id,
+                    'user_id' => $user->id,
+                ], [
+                    'phone' => $user->phone,
+                ]);
+            } elseif (($role === RoleEnum::TEACHER->value || $role === RoleEnum::LIBRARIAN->value) && $school) {
+                Staff::firstOrCreate([
+                    'school_id' => $school->id,
+                    'user_id' => $user->id,
+                ], [
+                    'role_title' => $role === RoleEnum::LIBRARIAN->value ? 'Librarian' : 'Teacher',
+                    'phone' => $user->phone,
+                    'status' => 'active',
+                ]);
+            }
+
+            // Issue Sanctum token
+            $deviceName = $validated['device_name'] ?? 'web-token';
+            $token = $user->createToken($deviceName)->plainTextToken;
+
+            $schoolContext = $school ? [
+                'id' => $school->id,
+                'name' => $school->name,
+                'subdomain' => $school->subdomain,
+                'timezone' => $school->timezone,
+            ] : null;
+
+            return $this->respondWithSuccess([
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                    'status' => $user->status->value,
+                    'last_login_at' => $user->last_login_at?->toIso8601String(),
+                    'school' => $schoolContext,
+                    'permissions' => $user->getAllPermissions()->pluck('name'),
+                ],
+            ], 'Registration successful. Welcome to Bina Schools!', Response::HTTP_CREATED);
+        });
+    }
+
+    /**
      * Get the authenticated user's profile and active context.
      */
     public function me(Request $request): JsonResponse
+
     {
         $user = $request->user()->load('school');
 

@@ -174,4 +174,64 @@ class AuthAndRBACTest extends TestCase
 
         $oakridgeRes->assertOk()->assertJsonPath('success', true);
     }
+
+    /**
+     * Test user can self-register a new school and becomes school admin.
+     */
+    public function test_user_can_register_new_school_and_becomes_school_admin(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'name' => 'Alice Founder',
+            'email' => 'alice@horizon.edu',
+            'password' => 'secretPassword123!',
+            'password_confirmation' => 'secretPassword123!',
+            'phone' => '+15551234567',
+            'new_school_name' => 'Horizon International Academy',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.user.email', 'alice@horizon.edu')
+            ->assertJsonPath('data.user.role', 'school_admin')
+            ->assertJsonPath('data.user.school.name', 'Horizon International Academy');
+
+        $this->assertDatabaseHas('schools', [
+            'name' => 'Horizon International Academy',
+        ]);
+        $this->assertDatabaseHas('users', [
+            'email' => 'alice@horizon.edu',
+            'role' => 'school_admin',
+        ]);
+    }
+
+    /**
+     * Test user can register under an existing school as parent.
+     */
+    public function test_user_can_register_under_existing_school_as_parent(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'name' => 'Bob Parent',
+            'email' => 'bob.parent@example.com',
+            'password' => 'secretPassword123!',
+            'password_confirmation' => 'secretPassword123!',
+            'school_id' => $this->greenwood->id,
+            'role' => 'parent',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.user.email', 'bob.parent@example.com')
+            ->assertJsonPath('data.user.role', 'parent')
+            ->assertJsonPath('data.user.school.id', $this->greenwood->id);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'bob.parent@example.com',
+            'role' => 'parent',
+            'school_id' => $this->greenwood->id,
+        ]);
+        $this->assertDatabaseHas('parents', [
+            'user_id' => $response->json('data.user.id'),
+        ]);
+    }
 }
+

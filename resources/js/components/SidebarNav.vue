@@ -246,19 +246,29 @@
         </button>
       </div>
 
-      <router-link
-        v-else
-        to="/auth"
-        @click="$emit('navigate')"
-        class="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition"
-      >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-          <polyline points="10 17 15 12 10 7" />
-          <line x1="15" y1="12" x2="3" y2="12" />
-        </svg>
-        <span>Sign In / Switch Role</span>
-      </router-link>
+      <div v-else class="space-y-2">
+        <router-link
+          to="/login"
+          @click="$emit('navigate')"
+          class="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-semibold shadow-sm transition"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+            <polyline points="10 17 15 12 10 7" />
+            <line x1="15" y1="12" x2="3" y2="12" />
+          </svg>
+          <span>Sign In</span>
+        </router-link>
+
+        <router-link
+          to="/register"
+          @click="$emit('navigate')"
+          class="flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-[11px] font-medium border border-slate-700/80 transition"
+        >
+          <span>Register School</span>
+          <span class="text-indigo-400">&rarr;</span>
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -322,6 +332,7 @@ const navSections = [
       { name: 'Schools Management', path: '/schools', icon: 'schools' },
       { name: 'Onboarding Wizard', path: '/onboarding', icon: 'onboarding' },
       { name: 'Auth & RBAC Matrix', path: '/auth', icon: 'auth' },
+      { name: 'Login Portal', path: '/login', icon: 'auth' },
     ],
   },
 ];
