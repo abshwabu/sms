@@ -258,4 +258,55 @@ class AcademicStructureTest extends TestCase
             ->assertJsonPath('success', false)
             ->assertJsonPath('error.code', 'FORBIDDEN');
     }
+
+    /**
+     * Admin can directly manage academic terms (create, list, activate, and delete).
+     */
+    public function test_admin_can_manage_terms_direct_creation_and_activation(): void
+    {
+        $token = $this->greenwoodAdmin->createToken('admin-token')->plainTextToken;
+        $activeYear = AcademicYear::where('is_active', true)->firstOrFail();
+
+        // 1. Create term directly
+        $createRes = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->withHeader('X-School-Id', (string) $this->greenwood->id)
+            ->postJson('/api/terms', [
+                'academic_year_id' => $activeYear->id,
+                'name' => 'Spring Trimester',
+                'start_date' => '2026-01-15',
+                'end_date' => '2026-04-15',
+                'is_active' => false,
+            ]);
+
+        $createRes->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'Spring Trimester');
+
+        $termId = $createRes->json('data.id');
+
+        // 2. Activate term
+        $activateRes = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->withHeader('X-School-Id', (string) $this->greenwood->id)
+            ->postJson("/api/terms/{$termId}/activate");
+
+        $activateRes->assertStatus(200)
+            ->assertJsonPath('data.is_active', true);
+
+        // 3. List terms
+        $listRes = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->withHeader('X-School-Id', (string) $this->greenwood->id)
+            ->getJson('/api/terms');
+
+        $listRes->assertStatus(200);
+        $termNames = collect($listRes->json('data'))->pluck('name')->all();
+        $this->assertContains('Spring Trimester', $termNames);
+
+        // 4. Delete term
+        $deleteRes = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->withHeader('X-School-Id', (string) $this->greenwood->id)
+            ->deleteJson("/api/terms/{$termId}");
+
+        $deleteRes->assertStatus(200);
+        $this->assertNull(\App\Models\Term::find($termId));
+    }
 }

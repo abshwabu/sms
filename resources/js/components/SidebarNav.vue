@@ -330,7 +330,7 @@ const navSections = computed(() => {
       {
         title: 'Academics & Structure',
         items: [
-          { name: 'Academic Hierarchy', path: '/academic', icon: 'academic' },
+          { name: 'Academic Years & Terms', path: '/academic', icon: 'academic' },
           { name: 'Courses & Catalog', path: '/courses', icon: 'courses' },
           { name: 'Timetables', path: '/timetable', icon: 'timetable' },
           { name: 'Grading & Reports', path: '/grading', icon: 'grading' },
@@ -376,7 +376,7 @@ const navSections = computed(() => {
       {
         title: 'Academic Management',
         items: [
-          { name: 'Academic Hierarchy', path: '/academic', icon: 'academic' },
+          { name: 'Academic Years & Terms', path: '/academic', icon: 'academic' },
           { name: 'Courses & Electives', path: '/courses', icon: 'courses' },
           { name: 'Timetable Scheduling', path: '/timetable', icon: 'timetable' },
           { name: 'Grading & Report Cards', path: '/grading', icon: 'grading' },

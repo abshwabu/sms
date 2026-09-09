@@ -255,7 +255,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/academic-years/{academicYear}/activate', [AcademicYearController::class, 'activate'])->name('api.academic-years.activate');
 
             Route::post('/academic-years/{academicYear}/terms', [TermController::class, 'store'])->name('api.academic-years.terms.store');
+            Route::post('/terms', [TermController::class, 'storeDirect'])->name('api.terms.store');
             Route::put('/terms/{term}', [TermController::class, 'update'])->name('api.terms.update');
+            Route::post('/terms/{term}/activate', [TermController::class, 'activate'])->name('api.terms.activate');
             Route::delete('/terms/{term}', [TermController::class, 'destroy'])->name('api.terms.destroy');
 
             Route::post('/grade-levels', [GradeLevelController::class, 'store'])->name('api.grade-levels.store');

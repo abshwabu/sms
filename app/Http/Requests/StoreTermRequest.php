@@ -11,6 +11,7 @@ class StoreTermRequest extends BaseApiRequest
         $academicYearId = $this->route('academicYear')?->id ?? $this->input('academic_year_id');
 
         return [
+            'academic_year_id' => ['sometimes', 'integer', 'exists:academic_years,id'],
             'name' => [
                 'required',
                 'string',
