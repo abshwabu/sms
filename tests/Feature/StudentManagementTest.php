@@ -429,4 +429,81 @@ class StudentManagementTest extends TestCase
             ])
             ->assertStatus(403);
     }
+
+    /**
+     * Test admin can create student directly with explicit details and enrollment.
+     */
+    public function test_admin_can_create_student_directly_with_full_details_and_enrollment(): void
+    {
+        $response = $this->actingAsTenant($this->greenwoodAdmin, $this->greenwood)
+            ->postJson('/api/students', [
+                'name' => 'Samantha Reed',
+                'email' => 'samantha.reed@example.com',
+                'admission_number' => 'ADM-GW-2026-999',
+                'gender' => 'female',
+                'date_of_birth' => '2012-04-15',
+                'address' => '456 Elm Street',
+                'admission_date' => '2026-09-01',
+                'academic_year_id' => $this->greenwoodActiveYear->id,
+                'section_id' => $this->sourceSection->id,
+                'guardian_name' => 'Robert Reed',
+                'guardian_phone' => '+1555123456',
+                'guardian_email' => 'robert.reed@example.com',
+                'guardian_relationship' => 'Father',
+            ]);
+
+        $response->assertStatus(201);
+        $response->assertJsonPath('data.admission_number', 'ADM-GW-2026-999');
+        $response->assertJsonPath('data.user.name', 'Samantha Reed');
+        $response->assertJsonPath('data.user.email', 'samantha.reed@example.com');
+        $this->assertNotEmpty($response->json('data.temporary_password'));
+
+        $this->assertDatabaseHas('students', [
+            'school_id' => $this->greenwood->id,
+            'admission_number' => 'ADM-GW-2026-999',
+            'current_section_id' => $this->sourceSection->id,
+        ]);
+
+        $this->assertDatabaseHas('enrollments', [
+            'school_id' => $this->greenwood->id,
+            'academic_year_id' => $this->greenwoodActiveYear->id,
+            'section_id' => $this->sourceSection->id,
+            'status' => 'enrolled',
+        ]);
+    }
+
+    /**
+     * Test admin can create student with auto-generated admission number and email.
+     */
+    public function test_admin_can_create_student_with_auto_generated_admission_and_email(): void
+    {
+        $response = $this->actingAsTenant($this->greenwoodAdmin, $this->greenwood)
+            ->postJson('/api/students', [
+                'name' => 'Julian Vance',
+                'gender' => 'male',
+                'academic_year_id' => $this->greenwoodActiveYear->id,
+                'section_id' => $this->sourceSection->id,
+            ]);
+
+        $response->assertStatus(201);
+        $studentData = $response->json('data');
+        $this->assertNotEmpty($studentData['admission_number']);
+        $this->assertStringStartsWith('GRE-', $studentData['admission_number']);
+        $this->assertNotEmpty($studentData['user']['email']);
+        $this->assertStringContainsString('@greenwood.edu', $studentData['user']['email']);
+        $this->assertNotEmpty($studentData['temporary_password']);
+    }
+
+    /**
+     * Test teacher cannot create student directly.
+     */
+    public function test_teacher_cannot_create_student_directly(): void
+    {
+        $response = $this->actingAsTenant($this->greenwoodTeacher, $this->greenwood)
+            ->postJson('/api/students', [
+                'name' => 'Unauthorized Student',
+            ]);
+
+        $response->assertStatus(403);
+    }
 }

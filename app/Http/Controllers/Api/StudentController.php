@@ -12,6 +12,7 @@ use App\Http\Requests\UpdateStudentRequest;
 use App\Http\Traits\HasApiResponse;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
+use App\Models\School;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\User;
@@ -68,7 +69,11 @@ class StudentController extends Controller
     {
         Gate::authorize('create', Student::class);
 
-        $school = $tenantManager->getTenant();
+        $school = $tenantManager->getTenant() ?? $request->user()?->school;
+        if (! $school) {
+            return $this->respondError('No active school context found.', Response::HTTP_NOT_FOUND);
+        }
+
         $validated = $request->validated();
 
         $sectionId = $validated['section_id'] ?? null;
@@ -87,6 +92,32 @@ class StudentController extends Controller
             }
         }
 
+        // Generate admission number if not provided
+        $admissionNumber = ! empty($validated['admission_number'])
+            ? trim((string) $validated['admission_number'])
+            : $this->generateAdmissionNumber($school);
+
+        // Generate email if not provided
+        $email = ! empty($validated['email'])
+            ? trim((string) $validated['email'])
+            : $this->generateStudentEmail($school, (string) $validated['name'], $admissionNumber);
+
+        // Plain password
+        $plainPassword = ! empty($validated['password'])
+            ? (string) $validated['password']
+            : ('Stu!' . Str::random(8));
+
+        // Guardian info consolidation
+        $guardianInfo = $validated['guardian_info'] ?? null;
+        if (! $guardianInfo && (! empty($validated['guardian_name']) || ! empty($validated['guardian_phone']))) {
+            $guardianInfo = [
+                'name' => $validated['guardian_name'] ?? null,
+                'phone' => $validated['guardian_phone'] ?? null,
+                'email' => $validated['guardian_email'] ?? null,
+                'relationship' => $validated['guardian_relationship'] ?? 'Guardian',
+            ];
+        }
+
         DB::beginTransaction();
         try {
             app(PermissionRegistrar::class)->setPermissionsTeamId($school->id);
@@ -96,12 +127,10 @@ class StudentController extends Controller
                 'school_id' => $school->id,
             ]);
 
-            $plainPassword = $validated['password'] ?? Str::random(10);
-
             $user = User::create([
                 'school_id' => $school->id,
                 'name' => $validated['name'],
-                'email' => $validated['email'],
+                'email' => $email,
                 'phone' => $validated['phone'] ?? null,
                 'password' => Hash::make($plainPassword),
                 'role' => RoleEnum::STUDENT->value,
@@ -113,7 +142,7 @@ class StudentController extends Controller
             $student = Student::create([
                 'school_id' => $school->id,
                 'user_id' => $user->id,
-                'admission_number' => $validated['admission_number'],
+                'admission_number' => $admissionNumber,
                 'date_of_birth' => $validated['date_of_birth'] ?? null,
                 'gender' => $validated['gender'] ?? 'other',
                 'address' => $validated['address'] ?? null,
@@ -122,7 +151,7 @@ class StudentController extends Controller
                 'status' => 'active',
                 'medical_notes' => $validated['medical_notes'] ?? null,
                 'photo' => $validated['photo'] ?? null,
-                'guardian_info' => $validated['guardian_info'] ?? null,
+                'guardian_info' => $guardianInfo,
             ]);
 
             if ($sectionId && $academicYearId) {
@@ -147,6 +176,9 @@ class StudentController extends Controller
             'currentSection.gradeLevel:id,name',
             'currentSection.academicYear:id,name',
         ]);
+
+        $student->setAttribute('plain_password', $plainPassword);
+        $student->setAttribute('temporary_password', $plainPassword);
 
         return $this->respondWithSuccess($student, 'Student created successfully.', Response::HTTP_CREATED);
     }
@@ -271,5 +303,39 @@ class StudentController extends Controller
         );
 
         return $this->respondWithSuccess($result, 'Roster promotion processed successfully.');
+    }
+
+    /**
+     * Generate unique sequential admission number for a school.
+     */
+    protected function generateAdmissionNumber(School $school): string
+    {
+        $prefix = strtoupper(substr($school->subdomain, 0, 3));
+        $year = date('y');
+        $baseCount = Student::withoutGlobalScopes()->where('school_id', $school->id)->count() + 1;
+
+        $candidate = sprintf('%s-%s-%05d', $prefix, $year, $baseCount);
+        while (Student::withoutGlobalScopes()->where('school_id', $school->id)->where('admission_number', $candidate)->exists()) {
+            $baseCount++;
+            $candidate = sprintf('%s-%s-%05d', $prefix, $year, $baseCount);
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * Generate unique student email address for school domain.
+     */
+    protected function generateStudentEmail(School $school, string $name, string $admissionNumber): string
+    {
+        $cleanName = Str::slug($name, '.');
+        $cleanAdm = Str::slug($admissionNumber, '.');
+        $candidate = "{$cleanName}.{$cleanAdm}@{$school->subdomain}.edu";
+        $i = 1;
+        while (User::where('email', $candidate)->exists()) {
+            $candidate = "{$cleanName}.{$cleanAdm}.{$i}@{$school->subdomain}.edu";
+            $i++;
+        }
+        return $candidate;
     }
 }

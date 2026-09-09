@@ -9,20 +9,20 @@ class StoreStudentRequest extends BaseApiRequest
 {
     public function rules(): array
     {
-        $schoolId = app(TenantManager::class)->getTenantId();
+        $schoolId = app(TenantManager::class)->getTenantId() ?? $this->user()?->school_id;
 
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
-                'required',
+                'nullable',
                 'email',
                 'max:255',
                 Rule::unique('users', 'email'),
             ],
-            'password' => ['nullable', 'string', 'min:8'],
+            'password' => ['nullable', 'string', 'min:6'],
             'phone' => ['nullable', 'string', 'max:30'],
             'admission_number' => [
-                'required',
+                'nullable',
                 'string',
                 'max:50',
                 Rule::unique('students', 'admission_number')->where('school_id', $schoolId),
@@ -35,6 +35,10 @@ class StoreStudentRequest extends BaseApiRequest
             'section_id' => ['nullable', 'integer', Rule::exists('sections', 'id')->where('school_id', $schoolId)],
             'medical_notes' => ['nullable', 'string', 'max:1000'],
             'photo' => ['nullable', 'string', 'max:2048'],
+            'guardian_name' => ['nullable', 'string', 'max:255'],
+            'guardian_phone' => ['nullable', 'string', 'max:50'],
+            'guardian_email' => ['nullable', 'string', 'max:255'],
+            'guardian_relationship' => ['nullable', 'string', 'max:100'],
             'guardian_info' => ['nullable', 'array'],
         ];
     }

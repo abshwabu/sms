@@ -26,7 +26,7 @@
         <button 
           @click="openPromotionModal"
           v-if="authStore.isSchoolAdmin"
-          class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5"
+          class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center gap-1.5"
         >
           <span>🚀 Year-End Promotion</span>
         </button>
@@ -34,9 +34,9 @@
         <button 
           @click="openAddModal"
           v-if="authStore.isSchoolAdmin"
-          class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center gap-1.5"
+          class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5"
         >
-          <span>+ Add Student</span>
+          <span>🎒 + Add Student</span>
         </button>
       </div>
     </div>
@@ -118,6 +118,20 @@
         <p class="text-xs text-slate-400 max-w-sm mx-auto">
           Start building your student roster by importing from CSV or adding students manually.
         </p>
+        <div v-if="authStore.isSchoolAdmin" class="flex items-center justify-center gap-2 pt-2">
+          <button 
+            @click="openAddModal"
+            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5"
+          >
+            <span>🎒 + Add Student</span>
+          </button>
+          <button 
+            @click="openImportModal"
+            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center gap-1.5"
+          >
+            <span>📥 Bulk CSV Import</span>
+          </button>
+        </div>
       </div>
 
       <div v-else class="overflow-x-auto">
@@ -448,6 +462,304 @@
         </div>
       </div>
     </div>
+    <!-- Add Student Modal -->
+    <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <span>🎒 Add New Student</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
+                Enrollment
+              </span>
+            </h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">
+              Register student profile, assign class section, and create portal credentials.
+            </p>
+          </div>
+          <button @click="showAddModal = false" class="text-slate-400 hover:text-white text-lg">&times;</button>
+        </div>
+
+        <form @submit.prevent="handleCreateStudent" class="space-y-4 text-xs">
+          <!-- 1. Student Identity -->
+          <div class="space-y-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+            <h3 class="text-xs font-semibold text-indigo-300 uppercase tracking-wider">1. Student Identity</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Full Name *</label>
+                <input 
+                  v-model="newStudent.name" 
+                  type="text" 
+                  required
+                  placeholder="e.g. Liam Noah Robinson" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" 
+                />
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-slate-300 font-semibold">Admission #</label>
+                  <span class="text-[10px] text-slate-400 font-mono">Auto-generated if empty</span>
+                </div>
+                <input 
+                  v-model="newStudent.admission_number" 
+                  type="text" 
+                  placeholder="e.g. GRE-26-00100 (Optional)" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-indigo-500" 
+                />
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Gender *</label>
+                <select 
+                  v-model="newStudent.gender" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Date of Birth</label>
+                <input 
+                  v-model="newStudent.date_of_birth" 
+                  type="date" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-indigo-500" 
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Academic Placement -->
+          <div class="space-y-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+            <h3 class="text-xs font-semibold text-indigo-300 uppercase tracking-wider">2. Academic Year &amp; Section Placement</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Academic Year</label>
+                <select 
+                  v-model="newStudent.academic_year_id" 
+                  @change="handleYearChangeInAddModal"
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">No Active Year Selected</option>
+                  <option v-for="y in openAcademicYears" :key="y.id" :value="y.id">
+                    {{ y.name }} {{ y.is_active ? '★ (Active)' : '' }}
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Target Section / Class</label>
+                <select 
+                  v-model="newStudent.section_id" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">Unassigned (Set Later)</option>
+                  <option v-for="s in filteredSectionsForAdd" :key="s.id" :value="s.id">
+                    {{ s.name }} ({{ s.grade_level?.name || 'Grade' }})
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Admission Date</label>
+                <input 
+                  v-model="newStudent.admission_date" 
+                  type="date" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-indigo-500" 
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Portal Credentials & Login -->
+          <div class="space-y-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-semibold text-indigo-300 uppercase tracking-wider">3. Student Portal Account</h3>
+              <span class="text-[10px] text-slate-400 font-mono">Auto-generated if left blank</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Login Email</label>
+                <input 
+                  v-model="newStudent.email" 
+                  type="email" 
+                  placeholder="e.g. liam.robinson@school.edu (Optional)" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" 
+                />
+                <p class="text-[10px] text-slate-500 mt-0.5">Leave blank to auto-create using student name.</p>
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Account Password</label>
+                <input 
+                  v-model="newStudent.password" 
+                  type="text" 
+                  placeholder="Leave empty for auto-generated password" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-indigo-500" 
+                />
+                <p class="text-[10px] text-slate-500 mt-0.5">Minimum 6 characters or auto-generated.</p>
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Student Phone (Optional)</label>
+                <input 
+                  v-model="newStudent.phone" 
+                  type="text" 
+                  placeholder="+1 (555) 000-0000" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" 
+                />
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Residential Address (Optional)</label>
+                <input 
+                  v-model="newStudent.address" 
+                  type="text" 
+                  placeholder="e.g. 124 Park Ave, Cityville" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" 
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Guardian Details -->
+          <div class="space-y-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+            <h3 class="text-xs font-semibold text-indigo-300 uppercase tracking-wider">4. Guardian / Primary Contact (Optional)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Guardian Full Name</label>
+                <input 
+                  v-model="newStudent.guardian_name" 
+                  type="text" 
+                  placeholder="e.g. Sarah Robinson" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" 
+                />
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Relationship</label>
+                <select 
+                  v-model="newStudent.guardian_relationship" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="Parent">Parent</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Father">Father</option>
+                  <option value="Legal Guardian">Legal Guardian</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Guardian Phone</label>
+                <input 
+                  v-model="newStudent.guardian_phone" 
+                  type="text" 
+                  placeholder="+1 (555) 123-4567" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" 
+                />
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Guardian Email</label>
+                <input 
+                  v-model="newStudent.guardian_email" 
+                  type="email" 
+                  placeholder="e.g. sarah.parent@example.com" 
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" 
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Medical Notes -->
+          <div class="space-y-1.5 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+            <label class="block text-slate-300 font-semibold">Medical / Special Dietary Notes (Optional)</label>
+            <textarea 
+              v-model="newStudent.medical_notes" 
+              rows="2"
+              placeholder="e.g. Peanut allergy, wears corrective lenses, asthma inhaler carried..." 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs"
+            ></textarea>
+          </div>
+
+          <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
+            <button 
+              type="button"
+              @click="showAddModal = false" 
+              class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              :disabled="savingStudent" 
+              class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition shadow-sm flex items-center gap-1.5"
+            >
+              <span>{{ savingStudent ? 'Enrolling Student...' : 'Enroll Student' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Generated Credentials Modal -->
+    <div v-if="showCredentialsModal && createdCredentials" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div class="text-center space-y-1">
+          <div class="text-3xl">🎉</div>
+          <h2 class="text-base font-bold text-white">Student Enrolled Successfully!</h2>
+          <p class="text-xs text-slate-400">
+            Student profile registered. Provide these credentials to the student or guardian for portal access.
+          </p>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5 font-mono text-xs">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">Student:</span>
+            <span class="text-white font-bold">{{ createdCredentials.name }}</span>
+          </div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">Admission #:</span>
+            <span class="text-indigo-300 font-bold">{{ createdCredentials.admission_number }}</span>
+          </div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">Assigned Section:</span>
+            <span class="text-slate-200">{{ createdCredentials.section }}</span>
+          </div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">Login Email:</span>
+            <span class="text-white font-bold select-all">{{ createdCredentials.email }}</span>
+          </div>
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-slate-400">Password:</span>
+            <span class="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 select-all">
+              {{ createdCredentials.temporary_password }}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex gap-2.5 pt-2">
+          <button 
+            type="button"
+            @click="copyCredentials" 
+            class="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1.5"
+          >
+            <span>{{ copiedCredentials ? '✓ Copied to Clipboard' : '📋 Copy Credentials' }}</span>
+          </button>
+          <button 
+            type="button"
+            @click="showCredentialsModal = false" 
+            class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -502,6 +814,38 @@ const filteredSectionsForImport = computed(() => {
 const filteredSectionsForPromotion = computed(() => {
   if (!promotionForm.value.target_academic_year_id) return academicStore.sections;
   return academicStore.sections.filter((s) => Number(s.academic_year_id) === Number(promotionForm.value.target_academic_year_id));
+});
+
+const showAddModal = ref(false);
+const savingStudent = ref(false);
+const showCredentialsModal = ref(false);
+const createdCredentials = ref(null);
+const copiedCredentials = ref(false);
+
+const initialStudentForm = () => ({
+  name: '',
+  email: '',
+  password: '',
+  admission_number: '',
+  gender: 'male',
+  date_of_birth: '',
+  phone: '',
+  address: '',
+  admission_date: new Date().toISOString().split('T')[0],
+  academic_year_id: academicStore.activeYear?.id || (academicStore.academicYears[0]?.id || ''),
+  section_id: '',
+  guardian_name: '',
+  guardian_phone: '',
+  guardian_email: '',
+  guardian_relationship: 'Parent',
+  medical_notes: '',
+});
+
+const newStudent = ref(initialStudentForm());
+
+const filteredSectionsForAdd = computed(() => {
+  if (!newStudent.value.academic_year_id) return academicStore.sections;
+  return academicStore.sections.filter((s) => Number(s.academic_year_id) === Number(newStudent.value.academic_year_id));
 });
 
 onMounted(async () => {
@@ -625,6 +969,88 @@ async function executePromotion() {
     modalStore.alert(err.response?.data?.error?.message || 'Promotion failed.', { type: 'error' });
   } finally {
     promoting.value = false;
+  }
+}
+
+function openAddModal() {
+  newStudent.value = initialStudentForm();
+  if (academicStore.activeYear) {
+    newStudent.value.academic_year_id = academicStore.activeYear.id;
+  }
+  if (filteredSectionsForAdd.value.length > 0) {
+    newStudent.value.section_id = filteredSectionsForAdd.value[0].id;
+  }
+  showAddModal.value = true;
+}
+
+function handleYearChangeInAddModal() {
+  const valid = filteredSectionsForAdd.value.some((s) => s.id === newStudent.value.section_id);
+  if (!valid) {
+    newStudent.value.section_id = filteredSectionsForAdd.value[0]?.id || '';
+  }
+}
+
+async function handleCreateStudent() {
+  if (!newStudent.value.name?.trim()) {
+    modalStore.alert('Student full name is required.', { type: 'warning' });
+    return;
+  }
+
+  savingStudent.value = true;
+  try {
+    const payload = {
+      name: newStudent.value.name.trim(),
+      email: newStudent.value.email?.trim() || null,
+      password: newStudent.value.password?.trim() || null,
+      admission_number: newStudent.value.admission_number?.trim() || null,
+      gender: newStudent.value.gender,
+      date_of_birth: newStudent.value.date_of_birth || null,
+      phone: newStudent.value.phone?.trim() || null,
+      address: newStudent.value.address?.trim() || null,
+      admission_date: newStudent.value.admission_date || null,
+      academic_year_id: newStudent.value.academic_year_id || null,
+      section_id: newStudent.value.section_id || null,
+      medical_notes: newStudent.value.medical_notes?.trim() || null,
+      guardian_name: newStudent.value.guardian_name?.trim() || null,
+      guardian_phone: newStudent.value.guardian_phone?.trim() || null,
+      guardian_email: newStudent.value.guardian_email?.trim() || null,
+      guardian_relationship: newStudent.value.guardian_relationship?.trim() || 'Parent',
+    };
+
+    const res = await studentsStore.createStudent(payload);
+
+    // Prepare credentials modal data
+    const sectionObj = academicStore.sections.find((s) => Number(s.id) === Number(res.current_section_id));
+    createdCredentials.value = {
+      name: res.user?.name || res.name,
+      email: res.user?.email,
+      admission_number: res.admission_number,
+      section: sectionObj ? `${sectionObj.name} (${sectionObj.academic_year?.name || ''})` : 'Unassigned',
+      temporary_password: res.temporary_password || res.plain_password || 'As entered',
+    };
+
+    showAddModal.value = false;
+    showCredentialsModal.value = true;
+    modalStore.toast('Student successfully enrolled!', 'success');
+  } catch (err) {
+    const msg = err.response?.data?.error?.message 
+      || (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join('\n') : null)
+      || 'Failed to create student profile.';
+    modalStore.alert(msg, { type: 'error', title: 'Enrollment Error' });
+  } finally {
+    savingStudent.value = false;
+  }
+}
+
+async function copyCredentials() {
+  if (!createdCredentials.value) return;
+  const text = `Student Account Created:\nName: ${createdCredentials.value.name}\nAdmission #: ${createdCredentials.value.admission_number}\nSection: ${createdCredentials.value.section}\nLogin Email: ${createdCredentials.value.email}\nPassword: ${createdCredentials.value.temporary_password}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    copiedCredentials.value = true;
+    setTimeout(() => { copiedCredentials.value = false; }, 2500);
+  } catch {
+    modalStore.toast('Failed to copy to clipboard.', 'warning');
   }
 }
 </script>
