@@ -135,6 +135,14 @@ class ReportCardService
                 ->first();
             if ($enrollment && $enrollment->section) {
                 $section = $enrollment->section;
+            } else {
+                $assignment = \App\Models\StudentSectionAssignment::withoutGlobalScopes()
+                    ->where('student_id', $student->id)
+                    ->where('academic_year_id', $term->academic_year_id)
+                    ->first();
+                if ($assignment && $assignment->section) {
+                    $section = $assignment->section;
+                }
             }
         }
 
@@ -163,10 +171,13 @@ class ReportCardService
         }
         $reportCard->save();
 
-        // Fetch subjects applicable to this grade level
+        // Fetch subjects applicable to this grade level (including course-bridged school-wide subjects)
         $allGradeSubjects = Subject::withoutGlobalScopes()
             ->where('school_id', $schoolId)
-            ->where('grade_level_id', $gradeLevelId)
+            ->where(function ($q) use ($gradeLevelId) {
+                $q->where('grade_level_id', $gradeLevelId)
+                  ->orWhereNull('grade_level_id');
+            })
             ->get();
 
         // Branching: core subjects are implicit for all; electives only if actively enrolled
@@ -326,6 +337,11 @@ class ReportCardService
                   ->orWhereHas('enrollments', function ($eq) use ($section) {
                       $eq->where('section_id', $section->id)
                          ->where('academic_year_id', $section->academic_year_id);
+                  })
+                  ->orWhereIn('id', function ($sub) use ($section) {
+                      $sub->select('student_id')
+                          ->from('student_section_assignments')
+                          ->where('section_id', $section->id);
                   });
             })
             ->get()

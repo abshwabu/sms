@@ -334,4 +334,75 @@ class GradingAndReportCardsTest extends TestCase
         $this->assertEquals('published', $bartCard->fresh()->status);
         $this->assertEquals('Good work this term, keep striving for excellence.', $bartCard->fresh()->principal_remarks);
     }
+
+    /**
+     * Test terms listing, exam creation & deletion, and grading scale deletion.
+     */
+    public function test_admin_can_list_all_terms_create_and_delete_exams_and_grading_scales(): void
+    {
+        $headers = ['X-School-Id' => $this->greenwood->id];
+
+        // 1. List terms
+        $termsRes = $this->actingAs($this->greenwoodAdmin)
+            ->getJson('/api/terms', $headers);
+        $termsRes->assertStatus(200);
+        $this->assertNotEmpty($termsRes->json('data'));
+
+        // 2. Create exam
+        $createExamRes = $this->actingAs($this->greenwoodAdmin)
+            ->postJson('/api/exams', [
+                'name' => 'Midterm Assessment 2',
+                'type' => 'midterm',
+                'weight' => 25.0,
+                'max_marks' => 100,
+                'academic_year_id' => $this->year2025->id,
+                'term_id' => $this->fallTerm->id,
+                'grade_level_id' => $this->sectionA->grade_level_id,
+            ], $headers);
+        $createExamRes->assertStatus(201);
+        $examId = $createExamRes->json('data.id');
+
+        // 3. Delete exam
+        $deleteExamRes = $this->actingAs($this->greenwoodAdmin)
+            ->deleteJson("/api/exams/{$examId}", [], $headers);
+        $deleteExamRes->assertStatus(200);
+        $this->assertNull(Exam::find($examId));
+
+        // 4. Create non-default grading scale & delete it
+        $createScaleRes = $this->actingAs($this->greenwoodAdmin)
+            ->postJson('/api/grading-scales', [
+                'name' => 'Pass-Fail Scale',
+                'scale_type' => 'percentage',
+                'is_default' => false,
+                'rules' => [
+                    ['min_score' => 60, 'max_score' => 100, 'grade' => 'P', 'gpa_point' => 3.0, 'description' => 'Passed'],
+                    ['min_score' => 0, 'max_score' => 59.9, 'grade' => 'F', 'gpa_point' => 0.0, 'description' => 'Failed'],
+                ],
+            ], $headers);
+        $createScaleRes->assertStatus(201);
+        $scaleId = $createScaleRes->json('data.id');
+
+        $deleteScaleRes = $this->actingAs($this->greenwoodAdmin)
+            ->deleteJson("/api/grading-scales/{$scaleId}", [], $headers);
+        $deleteScaleRes->assertStatus(200);
+        $this->assertNull(GradingScale::find($scaleId));
+    }
+
+    /**
+     * Test report cards fallback when no term is explicitly marked active.
+     */
+    public function test_section_report_cards_fallbacks_when_no_term_is_active(): void
+    {
+        $headers = ['X-School-Id' => $this->greenwood->id];
+
+        // Deactivate all terms for 2025/2026
+        Term::where('academic_year_id', $this->year2025->id)->update(['is_active' => false]);
+
+        // Querying section report cards without term_id should still resolve via fallback
+        $response = $this->actingAs($this->greenwoodAdmin)
+            ->getJson("/api/sections/{$this->sectionA->id}/report-cards", $headers);
+
+        $response->assertStatus(200);
+        $this->assertNotNull($response->json('data.term'));
+    }
 }

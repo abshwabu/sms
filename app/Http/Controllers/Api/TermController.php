@@ -16,6 +16,22 @@ class TermController extends Controller
     use HasApiResponse;
 
     /**
+     * Display all terms for active school.
+     */
+    public function indexAll(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $query = Term::with('academicYear');
+
+        if ($request->filled('academic_year_id')) {
+            $query->where('academic_year_id', $request->query('academic_year_id'));
+        }
+
+        $terms = $query->orderByDesc('is_active')->orderBy('start_date')->get();
+
+        return $this->respondWithSuccess($terms, 'Terms retrieved successfully.');
+    }
+
+    /**
      * Display terms for the specified academic year.
      */
     public function index(AcademicYear $academicYear): JsonResponse

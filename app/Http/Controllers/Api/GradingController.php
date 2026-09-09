@@ -210,7 +210,7 @@ class GradingController extends Controller
         Subject $subject
     ): JsonResponse {
         $user = $request->user();
-        if (! $user->isSchoolAdmin() && ! $section->canTeacherGrade($user, $subject->course_id)) {
+        if (! $user->isSchoolAdmin() && ! $user->isSuperAdmin() && ! $section->canTeacherGrade($user, $subject->course_id)) {
             return ApiResponse::error('You do not have permission to view or enter grades for this section/subject.', 'FORBIDDEN_GRADING', Response::HTTP_FORBIDDEN);
         }
 
@@ -225,6 +225,11 @@ class GradingController extends Controller
                   ->orWhereHas('enrollments', function ($eq) use ($section) {
                       $eq->where('section_id', $section->id)
                          ->where('academic_year_id', $section->academic_year_id);
+                  })
+                  ->orWhereIn('id', function ($sub) use ($section) {
+                      $sub->select('student_id')
+                          ->from('student_section_assignments')
+                          ->where('section_id', $section->id);
                   });
             })
             ->with('user:id,name,email')
@@ -295,7 +300,7 @@ class GradingController extends Controller
         $section = $sectionId ? Section::find($sectionId) : null;
 
         // Authorization check: Admin, or teacher assigned to this section/subject
-        if (! $user->isSchoolAdmin()) {
+        if (! $user->isSchoolAdmin() && ! $user->isSuperAdmin()) {
             if ($section && ! $section->canTeacherGrade($user, $subject->course_id)) {
                 return ApiResponse::error(
                     'You are not authorized to enter grades for this subject in this section.',
@@ -318,5 +323,39 @@ class GradingController extends Controller
             'Grades recorded and report cards updated successfully.',
             Response::HTTP_OK
         );
+    }
+
+    /**
+     * Delete an exam / assessment.
+     */
+    public function destroyExam(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->isSchoolAdmin() && ! $user->isSuperAdmin()) {
+            return ApiResponse::error('Only administrators can delete exams.', 'FORBIDDEN', Response::HTTP_FORBIDDEN);
+        }
+
+        $exam->delete();
+
+        return $this->respondWithSuccess(null, 'Assessment removed successfully.');
+    }
+
+    /**
+     * Delete a grading scale.
+     */
+    public function destroyGradingScale(Request $request, GradingScale $gradingScale): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->isSchoolAdmin() && ! $user->isSuperAdmin()) {
+            return ApiResponse::error('Only administrators can delete grading scales.', 'FORBIDDEN', Response::HTTP_FORBIDDEN);
+        }
+
+        if ($gradingScale->is_default) {
+            return ApiResponse::error('Cannot delete the default grading scale.', 'BAD_REQUEST', Response::HTTP_BAD_REQUEST);
+        }
+
+        $gradingScale->delete();
+
+        return $this->respondWithSuccess(null, 'Grading scale removed successfully.');
     }
 }

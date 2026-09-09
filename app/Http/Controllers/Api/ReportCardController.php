@@ -31,7 +31,7 @@ class ReportCardController extends Controller
     ): JsonResponse {
         $user = $request->user();
 
-        if (! $user->isSchoolAdmin() && ! $section->hasTeacher($user)) {
+        if (! $user->isSchoolAdmin() && ! $user->isSuperAdmin() && ! $section->hasTeacher($user)) {
             return ApiResponse::error(
                 'You do not have permission to view report cards for this section.',
                 'FORBIDDEN_SECTION_REPORTS',
@@ -40,12 +40,24 @@ class ReportCardController extends Controller
         }
 
         $termId = $request->query('term_id');
-        $term = $termId 
-            ? Term::findOrFail($termId) 
-            : Term::where('academic_year_id', $section->academic_year_id)->where('is_active', true)->first();
+        $term = null;
+
+        if ($termId) {
+            $term = Term::find($termId);
+        }
 
         if (! $term) {
-            return ApiResponse::error('Active or specified term not found.', 'TERM_NOT_FOUND', Response::HTTP_NOT_FOUND);
+            $term = Term::where('academic_year_id', $section->academic_year_id)
+                ->where('is_active', true)
+                ->first()
+                ?: Term::where('academic_year_id', $section->academic_year_id)
+                    ->latest('id')
+                    ->first()
+                ?: Term::latest('id')->first();
+        }
+
+        if (! $term) {
+            return ApiResponse::error('No academic terms found for this school. Please configure terms first.', 'TERM_NOT_FOUND', Response::HTTP_NOT_FOUND);
         }
 
         // Auto-aggregate to ensure up-to-date grades and rankings
@@ -112,7 +124,7 @@ class ReportCardController extends Controller
     ): JsonResponse {
         $user = $request->user();
 
-        if (! $user->isSchoolAdmin() && ! $section->isHomeroomTeacher($user)) {
+        if (! $user->isSchoolAdmin() && ! $user->isSuperAdmin() && ! $section->isHomeroomTeacher($user)) {
             return ApiResponse::error(
                 'Only school administrators or homeroom teachers can publish report cards for this section.',
                 'FORBIDDEN_BULK_PUBLISH',
@@ -121,7 +133,11 @@ class ReportCardController extends Controller
         }
 
         $termId = $request->input('term_id');
-        $term = $termId ? Term::findOrFail($termId) : Term::where('academic_year_id', $section->academic_year_id)->where('is_active', true)->first();
+        $term = $termId
+            ? Term::find($termId)
+            : (Term::where('academic_year_id', $section->academic_year_id)->where('is_active', true)->first()
+                ?: Term::where('academic_year_id', $section->academic_year_id)->latest('id')->first()
+                ?: Term::latest('id')->first());
 
         if (! $term) {
             return ApiResponse::error('Term not found.', 'TERM_NOT_FOUND', Response::HTTP_NOT_FOUND);

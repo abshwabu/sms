@@ -85,6 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/academic-years', [AcademicYearController::class, 'index'])->name('api.academic-years.index');
         Route::get('/academic-years/{academicYear}', [AcademicYearController::class, 'show'])->name('api.academic-years.show');
         Route::get('/academic-years/{academicYear}/terms', [TermController::class, 'index'])->name('api.academic-years.terms.index');
+        Route::get('/terms', [TermController::class, 'indexAll'])->name('api.terms.index-all');
         Route::get('/grade-levels', [GradeLevelController::class, 'index'])->name('api.grade-levels.index');
         Route::get('/grade-levels/{gradeLevel}', [GradeLevelController::class, 'show'])->name('api.grade-levels.show');
         Route::get('/sections', [SectionController::class, 'index'])->name('api.sections.index');
@@ -103,8 +104,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/subjects', [GradingController::class, 'storeSubject'])->name('api.subjects.store');
         Route::get('/exams', [GradingController::class, 'indexExams'])->name('api.exams.index');
         Route::post('/exams', [GradingController::class, 'storeExam'])->name('api.exams.store');
+        Route::delete('/exams/{exam}', [GradingController::class, 'destroyExam'])->name('api.exams.destroy');
         Route::get('/grading-scales', [GradingController::class, 'indexGradingScales'])->name('api.grading-scales.index');
         Route::post('/grading-scales', [GradingController::class, 'storeGradingScale'])->name('api.grading-scales.store');
+        Route::delete('/grading-scales/{gradingScale}', [GradingController::class, 'destroyGradingScale'])->name('api.grading-scales.destroy');
 
         Route::get('/sections/{section}/subjects/{subject}/grades', [GradingController::class, 'getSectionSubjectGrades'])->name('api.sections.subjects.grades.get');
         Route::post('/grades', [GradingController::class, 'recordGrades'])->name('api.grades.store');
