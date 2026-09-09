@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 import { useTenantStore } from './tenant';
+import { useDashboardStore } from './dashboard';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -34,10 +35,17 @@ export const useAuthStore = defineStore('auth', {
                 localStorage.setItem('auth_token', token);
                 localStorage.setItem('auth_user', JSON.stringify(user));
 
+                // Always clear any leftover role preview mode
+                const dashboardStore = useDashboardStore();
+                dashboardStore.resetRolePreview();
+                dashboardStore.data = null;
+
                 // Sync tenant store with user's school if available
                 const tenantStore = useTenantStore();
                 if (user.school) {
                     tenantStore.selectSchool(user.school);
+                } else if (!user.role === 'super_admin') {
+                    tenantStore.clearTenant();
                 }
 
                 return { success: true, user };
@@ -61,9 +69,16 @@ export const useAuthStore = defineStore('auth', {
                 localStorage.setItem('auth_token', token);
                 localStorage.setItem('auth_user', JSON.stringify(user));
 
+                // Clear any leftover role preview mode
+                const dashboardStore = useDashboardStore();
+                dashboardStore.resetRolePreview();
+                dashboardStore.data = null;
+
                 const tenantStore = useTenantStore();
                 if (user.school) {
                     tenantStore.selectSchool(user.school);
+                } else {
+                    tenantStore.clearTenant();
                 }
 
                 return { success: true, user };
@@ -87,6 +102,15 @@ export const useAuthStore = defineStore('auth', {
                 this.user = null;
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('auth_user');
+                localStorage.removeItem('active_school_id');
+                localStorage.removeItem('active_school_subdomain');
+
+                const tenantStore = useTenantStore();
+                tenantStore.clearTenant();
+
+                const dashboardStore = useDashboardStore();
+                dashboardStore.resetRolePreview();
+                dashboardStore.data = null;
             }
         },
 
@@ -96,6 +120,12 @@ export const useAuthStore = defineStore('auth', {
                 const res = await axios.get('/auth/me');
                 this.user = res.data.data;
                 localStorage.setItem('auth_user', JSON.stringify(this.user));
+
+                const tenantStore = useTenantStore();
+                if (this.user.school) {
+                    tenantStore.selectSchool(this.user.school);
+                }
+
                 return this.user;
             } catch (err) {
                 this.logout();

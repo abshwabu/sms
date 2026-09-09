@@ -75,7 +75,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Current user profile & session
     Route::get('/auth/me', [AuthController::class, 'me'])->name('api.auth.me');
     Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard')->middleware('tenant.user');
 
     // Tenant-Scoped Routes: requires active tenant AND verifies user belongs to this tenant
     Route::middleware(['tenant.require', 'tenant.user'])->group(function () {

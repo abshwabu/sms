@@ -30,8 +30,8 @@
               <span v-if="dashboardStore.data?.school" class="text-xs text-slate-300">
                 &bull; {{ dashboardStore.data.school.name }}
               </span>
-              <span v-if="dashboardStore.activeRoleView" class="text-xs text-amber-400 font-medium bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                (Role Preview Mode)
+              <span v-if="authStore.isSuperAdmin && dashboardStore.activeRoleView" class="text-xs text-purple-400 font-medium bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                (Super-Admin Diagnostic View)
               </span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">
@@ -1204,11 +1204,15 @@ const liveDate = computed(() => {
 });
 
 const currentActiveRole = computed(() => {
+  // Authenticated non-super-admins MUST ALWAYS see their own authentic role dashboard
+  if (authStore.isAuthenticated && !authStore.isSuperAdmin) {
+    return authStore.role || 'guest';
+  }
   return dashboardStore.activeRoleView || dashboardStore.data?.role || authStore.role || 'guest';
 });
 
 const canSwitchRoles = computed(() => {
-  return authStore.isSuperAdmin || authStore.isSchoolAdmin;
+  return authStore.isSuperAdmin;
 });
 
 const roleLabel = computed(() => {
@@ -1302,6 +1306,12 @@ async function demoLogin(email) {
 
 onMounted(async () => {
   if (authStore.isAuthenticated) {
+    if (!authStore.isSuperAdmin) {
+      dashboardStore.resetRolePreview();
+      if (authStore.schoolContext) {
+        tenantStore.selectSchool(authStore.schoolContext);
+      }
+    }
     await dashboardStore.fetchDashboard();
   }
 });

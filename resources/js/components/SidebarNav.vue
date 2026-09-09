@@ -37,26 +37,27 @@
       </button>
     </div>
 
-    <!-- Active Tenant Switcher -->
+    <!-- Active Tenant Display / Switcher -->
     <div class="p-3 border-b border-slate-800/80 bg-slate-950/40 flex-shrink-0">
-      <div class="rounded-xl border border-slate-800 bg-slate-900/90 p-2.5">
+      <!-- Super-Admin Context Switcher -->
+      <div v-if="authStore.isSuperAdmin" class="rounded-xl border border-purple-500/30 bg-slate-900/90 p-2.5">
         <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400 mb-1.5 px-0.5">
-          <span class="uppercase tracking-wider">Active School</span>
+          <span class="uppercase tracking-wider text-purple-400">Platform Tenant</span>
           <span 
             class="flex items-center gap-1 font-mono text-[10px]"
             :class="tenantStore.hasTenant ? 'text-emerald-400' : 'text-amber-400'"
           >
             <span class="w-1.5 h-1.5 rounded-full" :class="tenantStore.hasTenant ? 'bg-emerald-400' : 'bg-amber-400'"></span>
-            {{ tenantStore.hasTenant ? 'Isolated' : 'Bypassed' }}
+            {{ tenantStore.hasTenant ? 'Isolated' : 'All Tenants' }}
           </span>
         </div>
 
         <select 
           :value="tenantStore.activeSchoolId"
           @change="handleTenantChange($event.target.value)"
-          class="w-full bg-slate-800/90 text-xs font-medium text-slate-100 rounded-lg px-2.5 py-1.5 border border-slate-700/70 focus:outline-none focus:border-indigo-500 transition cursor-pointer"
+          class="w-full bg-slate-800/90 text-xs font-medium text-slate-100 rounded-lg px-2.5 py-1.5 border border-slate-700/70 focus:outline-none focus:border-purple-500 transition cursor-pointer"
         >
-          <option :value="''" class="bg-slate-900 text-amber-400">All Tenants (Bypassed)</option>
+          <option :value="''" class="bg-slate-900 text-amber-400">All Schools (Cross-Tenant)</option>
           <option 
             v-for="s in tenantStore.schools" 
             :key="s.id" 
@@ -66,6 +67,23 @@
             {{ s.name }}
           </option>
         </select>
+      </div>
+
+      <!-- Institutional Locked Tenant (For Regular School Users) -->
+      <div v-else class="rounded-xl border border-slate-800 bg-slate-900/90 p-2.5">
+        <div class="flex items-center justify-between text-[10px] font-semibold text-slate-400 mb-1 px-0.5">
+          <span class="uppercase tracking-wider font-mono">Assigned School</span>
+          <span class="flex items-center gap-1 font-mono text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            Isolated
+          </span>
+        </div>
+        <div class="text-xs font-bold text-white truncate px-0.5">
+          {{ currentSchoolName }}
+        </div>
+        <div v-if="authStore.schoolContext?.subdomain" class="text-[10px] font-mono text-slate-400 px-0.5 mt-0.5">
+          {{ authStore.schoolContext.subdomain }}.bina.edu
+        </div>
       </div>
     </div>
 
@@ -292,50 +310,201 @@ const tenantStore = useTenantStore();
 const authStore = useAuthStore();
 const commStore = useCommunicationsStore();
 
-const navSections = [
-  {
-    title: 'Overview',
-    items: [
-      { name: 'Dashboard', path: '/', exact: true, icon: 'dashboard' },
-      { name: 'Health Diagnostics', path: '/health', icon: 'health' },
-    ],
-  },
-  {
-    title: 'Academics',
-    items: [
-      { name: 'Academic Hierarchy', path: '/academic', icon: 'academic' },
-      { name: 'Courses & Isolation', path: '/courses', icon: 'courses' },
-      { name: 'Timetable & Schedule', path: '/timetable', icon: 'timetable' },
-      { name: 'Grading & Reports', path: '/grading', icon: 'grading' },
-      { name: 'Attendance Tracking', path: '/attendance', icon: 'attendance' },
-    ],
-  },
-  {
-    title: 'People & Community',
-    items: [
-      { name: 'Students & Enrollment', path: '/students', icon: 'students' },
-      { name: 'Staff & Teachers', path: '/staff', icon: 'staff' },
-      { name: 'Parent Portal', path: '/parents', icon: 'parents' },
-    ],
-  },
-  {
-    title: 'Operations & Services',
-    items: [
-      { name: 'Communications', path: '/communications', icon: 'communications', badge: 'comm' },
-      { name: 'Library System', path: '/library', icon: 'library' },
-      { name: 'Transport & Routes', path: '/transport', icon: 'transport' },
-    ],
-  },
-  {
-    title: 'System & Security',
-    items: [
-      { name: 'Schools Management', path: '/schools', icon: 'schools' },
-      { name: 'Onboarding Wizard', path: '/onboarding', icon: 'onboarding' },
-      { name: 'Auth & RBAC Matrix', path: '/auth', icon: 'auth' },
-      { name: 'Login Portal', path: '/login', icon: 'auth' },
-    ],
-  },
-];
+const currentSchoolName = computed(() => {
+  return authStore.schoolContext?.name || tenantStore.activeSchoolName || 'My School';
+});
+
+const navSections = computed(() => {
+  const role = authStore.role;
+
+  // 1. Platform Super-Admin: full cross-tenant platform management
+  if (role === 'super_admin') {
+    return [
+      {
+        title: 'Platform Overview',
+        items: [
+          { name: 'Platform Dashboard', path: '/', exact: true, icon: 'dashboard' },
+          { name: 'Health Diagnostics', path: '/health', icon: 'health' },
+        ],
+      },
+      {
+        title: 'Academics & Structure',
+        items: [
+          { name: 'Academic Hierarchy', path: '/academic', icon: 'academic' },
+          { name: 'Courses & Catalog', path: '/courses', icon: 'courses' },
+          { name: 'Timetables', path: '/timetable', icon: 'timetable' },
+          { name: 'Grading & Reports', path: '/grading', icon: 'grading' },
+          { name: 'Attendance', path: '/attendance', icon: 'attendance' },
+        ],
+      },
+      {
+        title: 'People & Directory',
+        items: [
+          { name: 'Students', path: '/students', icon: 'students' },
+          { name: 'Staff & Teachers', path: '/staff', icon: 'staff' },
+          { name: 'Parents', path: '/parents', icon: 'parents' },
+        ],
+      },
+      {
+        title: 'Operations',
+        items: [
+          { name: 'Communications', path: '/communications', icon: 'communications', badge: 'comm' },
+          { name: 'Library', path: '/library', icon: 'library' },
+          { name: 'Transport', path: '/transport', icon: 'transport' },
+        ],
+      },
+      {
+        title: 'System & Multi-Tenancy',
+        items: [
+          { name: 'Schools Directory', path: '/schools', icon: 'schools' },
+          { name: 'Onboarding Wizard', path: '/onboarding', icon: 'onboarding' },
+          { name: 'Auth & RBAC Matrix', path: '/auth', icon: 'auth' },
+        ],
+      },
+    ];
+  }
+
+  // 2. School Administrator: managing their single assigned school tenant
+  if (role === 'school_admin') {
+    return [
+      {
+        title: 'School Overview',
+        items: [
+          { name: 'Executive Dashboard', path: '/', exact: true, icon: 'dashboard' },
+        ],
+      },
+      {
+        title: 'Academic Management',
+        items: [
+          { name: 'Academic Hierarchy', path: '/academic', icon: 'academic' },
+          { name: 'Courses & Electives', path: '/courses', icon: 'courses' },
+          { name: 'Timetable Scheduling', path: '/timetable', icon: 'timetable' },
+          { name: 'Grading & Report Cards', path: '/grading', icon: 'grading' },
+          { name: 'Attendance Oversight', path: '/attendance', icon: 'attendance' },
+        ],
+      },
+      {
+        title: 'School Community',
+        items: [
+          { name: 'Student Intake & Roster', path: '/students', icon: 'students' },
+          { name: 'Staff & Faculty', path: '/staff', icon: 'staff' },
+          { name: 'Parent Management', path: '/parents', icon: 'parents' },
+        ],
+      },
+      {
+        title: 'Operations & Services',
+        items: [
+          { name: 'Communications Center', path: '/communications', icon: 'communications', badge: 'comm' },
+          { name: 'Library System', path: '/library', icon: 'library' },
+          { name: 'Transport & Routes', path: '/transport', icon: 'transport' },
+        ],
+      },
+      {
+        title: 'School Administration',
+        items: [
+          { name: 'Onboarding & Invites', path: '/onboarding', icon: 'onboarding' },
+          { name: 'Account & Security', path: '/auth', icon: 'auth' },
+        ],
+      },
+    ];
+  }
+
+  // 3. Teacher: classroom teaching, attendance, personal timetable, grades
+  if (role === 'teacher') {
+    return [
+      {
+        title: 'Teacher Workspace',
+        items: [
+          { name: 'My Dashboard', path: '/', exact: true, icon: 'dashboard' },
+        ],
+      },
+      {
+        title: 'Teaching & Classroom',
+        items: [
+          { name: 'Teaching Timetable', path: '/timetable', icon: 'timetable' },
+          { name: 'Homeroom Roll-Call', path: '/attendance', icon: 'attendance' },
+          { name: 'Enter Marks & Grades', path: '/grading', icon: 'grading' },
+          { name: 'Class Roster & Students', path: '/students', icon: 'students' },
+          { name: 'My Subject Courses', path: '/courses', icon: 'courses' },
+        ],
+      },
+      {
+        title: 'Campus Services',
+        items: [
+          { name: 'Messages & Notices', path: '/communications', icon: 'communications', badge: 'comm' },
+          { name: 'Library Catalog', path: '/library', icon: 'library' },
+          { name: 'My Profile', path: '/auth', icon: 'auth' },
+        ],
+      },
+    ];
+  }
+
+  // 4. Student: classes, grades, loans, communications
+  if (role === 'student') {
+    return [
+      {
+        title: 'Student Portal',
+        items: [
+          { name: 'My Dashboard', path: '/', exact: true, icon: 'dashboard' },
+        ],
+      },
+      {
+        title: 'My Academics',
+        items: [
+          { name: 'Class Timetable', path: '/timetable', icon: 'timetable' },
+          { name: 'My Report Card & Marks', path: '/grading', icon: 'grading' },
+        ],
+      },
+      {
+        title: 'Campus Life',
+        items: [
+          { name: 'Library Loans', path: '/library', icon: 'library' },
+          { name: 'My Bus Route', path: '/transport', icon: 'transport' },
+          { name: 'Announcements', path: '/communications', icon: 'communications', badge: 'comm' },
+          { name: 'My Account', path: '/auth', icon: 'auth' },
+        ],
+      },
+    ];
+  }
+
+  // 5. Parent: child overview, bus, report cards, fees
+  if (role === 'parent') {
+    return [
+      {
+        title: 'Parent Portal',
+        items: [
+          { name: 'Family Dashboard', path: '/', exact: true, icon: 'dashboard' },
+        ],
+      },
+      {
+        title: 'Child Progress',
+        items: [
+          { name: 'Linked Children Portal', path: '/parents', icon: 'parents' },
+          { name: 'Daily Attendance', path: '/attendance', icon: 'attendance' },
+          { name: 'Report Cards & Grades', path: '/grading', icon: 'grading' },
+          { name: 'Bus Transport Tracking', path: '/transport', icon: 'transport' },
+        ],
+      },
+      {
+        title: 'School Connect',
+        items: [
+          { name: 'School Notices & Chat', path: '/communications', icon: 'communications', badge: 'comm' },
+          { name: 'Parent Account', path: '/auth', icon: 'auth' },
+        ],
+      },
+    ];
+  }
+
+  // Fallback for guest
+  return [
+    {
+      title: 'Overview',
+      items: [
+        { name: 'Dashboard', path: '/', exact: true, icon: 'dashboard' },
+      ],
+    },
+  ];
+});
 
 const userInitial = computed(() => {
   if (!authStore.user?.name) return 'U';
@@ -353,6 +522,7 @@ function handleClick(navigate, event) {
 }
 
 function handleTenantChange(val) {
+  if (!authStore.isSuperAdmin) return;
   if (!val) {
     tenantStore.clearTenant();
   } else {

@@ -133,9 +133,30 @@ router.beforeEach((to, from, next) => {
         });
     }
 
-    // Redirect already authenticated users away from login and register to dashboard
-    if (isAuthenticated && (to.path === '/login' || to.path === '/register')) {
-        return next({ path: '/' });
+    if (isAuthenticated) {
+        const parsedUser = JSON.parse(user || '{}');
+        const role = parsedUser.role;
+
+        // Redirect already authenticated users away from login and register to dashboard
+        if (to.path === '/login' || to.path === '/register') {
+            return next({ path: '/' });
+        }
+
+        // Strict role guards: prevent non-super-admins from accessing cross-tenant schools management
+        if (to.path === '/schools' && role !== 'super_admin') {
+            return next({ path: '/' });
+        }
+
+        // Platform diagnostics are for super-admin only
+        if (to.path === '/health' && role !== 'super_admin') {
+            return next({ path: '/' });
+        }
+
+        // Onboarding and staff management are for school administrators
+        if ((to.path === '/onboarding' || to.path === '/staff' || to.path === '/academic') && 
+            role !== 'school_admin' && role !== 'super_admin') {
+            return next({ path: '/' });
+        }
     }
 
     next();

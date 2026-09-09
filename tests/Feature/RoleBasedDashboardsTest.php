@@ -264,4 +264,29 @@ class RoleBasedDashboardsTest extends TestCase
             ->assertJsonPath('data.school.id', $this->oakridge->id)
             ->assertJsonPath('data.school.name', 'Oakridge Academy');
     }
+
+    public function test_user_cannot_access_other_school_dashboard(): void
+    {
+        // Oakridge admin attempts to pass Greenwood's ID in header
+        $oakridgeAdmin = User::where('email', 'admin@oakridge.edu')->firstOrFail();
+        $headers = ['X-School-Id' => $this->greenwood->id];
+
+        $response = $this->actingAs($oakridgeAdmin)
+            ->getJson('/api/dashboard', $headers);
+
+        $response->assertForbidden()
+            ->assertJsonPath('error.code', 'FORBIDDEN_TENANT_ACCESS');
+    }
+
+    public function test_non_super_admin_cannot_switch_to_other_roles(): void
+    {
+        // School admin attempts to switch to teacher dashboard
+        $headers = ['X-School-Id' => $this->greenwood->id];
+
+        $response = $this->actingAs($this->schoolAdmin)
+            ->getJson('/api/dashboard?role=teacher', $headers);
+
+        $response->assertForbidden()
+            ->assertJsonPath('error.code', 'FORBIDDEN_DASHBOARD_ROLE');
+    }
 }

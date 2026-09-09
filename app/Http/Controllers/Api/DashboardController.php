@@ -27,7 +27,7 @@ class DashboardController extends Controller
         $childId = $request->query('child_id') ? (int) $request->query('child_id') : null;
         $day = $request->query('day');
 
-        // Security check: non-admins cannot impersonate or view unauthorized roles
+        // Security check: non-super-admins cannot switch to or view unauthorized roles
         if ($requestedRole) {
             if ($requestedRole === RoleEnum::SUPER_ADMIN->value && ! $user->isSuperAdmin()) {
                 return ApiResponse::error(
@@ -37,7 +37,7 @@ class DashboardController extends Controller
                 );
             }
 
-            if ($requestedRole !== $user->role && ! $user->isSchoolAdmin()) {
+            if (! $user->isSuperAdmin() && $requestedRole !== $user->role) {
                 return ApiResponse::error(
                     'You do not have permission to view other role dashboards.',
                     'FORBIDDEN_DASHBOARD_ROLE',

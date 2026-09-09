@@ -55,11 +55,21 @@ class DashboardService
         }
 
         // For school-specific roles, resolve the school context
-        $school = $this->tenantManager->getTenant() ?? $user->school;
-        if (! $school && $user->school_id) {
-            $school = School::find($user->school_id);
+        if (! $user->isSuperAdmin()) {
+            $school = $user->school;
+            if (! $school && $user->school_id) {
+                $school = School::find($user->school_id);
+            }
             if ($school) {
                 $this->tenantManager->setTenant($school);
+            }
+        } else {
+            $school = $this->tenantManager->getTenant() ?? $user->school;
+            if (! $school && $user->school_id) {
+                $school = School::find($user->school_id);
+                if ($school) {
+                    $this->tenantManager->setTenant($school);
+                }
             }
         }
 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
+import { useAuthStore } from './auth';
 
 export const useDashboardStore = defineStore('dashboard', {
     state: () => ({
@@ -24,8 +25,14 @@ export const useDashboardStore = defineStore('dashboard', {
             this.loading = true;
             this.error = null;
             try {
+                const authStore = useAuthStore();
+                // Regular authenticated users can never be in role preview mode
+                if (authStore.isAuthenticated && !authStore.isSuperAdmin) {
+                    this.activeRoleView = null;
+                }
+
                 const queryParams = { ...params };
-                if (this.activeRoleView && !queryParams.role) {
+                if (this.activeRoleView && !queryParams.role && (authStore.isSuperAdmin || !authStore.isAuthenticated)) {
                     queryParams.role = this.activeRoleView;
                 }
                 if (this.selectedChildId && !queryParams.child_id && this.role === 'parent') {
@@ -54,13 +61,17 @@ export const useDashboardStore = defineStore('dashboard', {
         },
 
         async previewAsRole(role) {
+            const authStore = useAuthStore();
+            if (authStore.isAuthenticated && !authStore.isSuperAdmin) {
+                this.activeRoleView = null;
+                return await this.fetchDashboard();
+            }
             this.activeRoleView = role;
             return await this.fetchDashboard({ role });
         },
 
         async resetRolePreview() {
             this.activeRoleView = null;
-            return await this.fetchDashboard();
         },
     },
 });
