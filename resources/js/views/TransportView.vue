@@ -789,9 +789,11 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import { useTransportStore } from '../stores/transport';
 import { useAuthStore } from '../stores/auth';
+import { useModalStore } from '../stores/modal';
 
 const transportStore = useTransportStore();
 const authStore = useAuthStore();
+const modalStore = useModalStore();
 
 const activeTab = ref('routes');
 const selectedRoute = ref(null);
@@ -928,16 +930,30 @@ async function submitAddStop() {
 }
 
 async function deleteStop(stopId) {
-  if (!confirm('Are you sure you want to delete this stop?')) return;
+  const confirmed = await modalStore.confirm({
+    title: 'Delete Stop',
+    message: 'Are you sure you want to delete this route stop? Existing student pickups at this stop may be affected.',
+    confirmText: 'Delete Stop',
+    destructive: true,
+  });
+  if (!confirmed) return;
   await transportStore.deleteStop(stopId, selectedRoute.value?.id);
+  modalStore.toast('Stop deleted successfully.', 'info');
   if (selectedRoute.value) {
     await selectRoute(selectedRoute.value);
   }
 }
 
 async function deleteRoute(route) {
-  if (!confirm(`Delete route "${route.name}"? This will remove all associated stops and assignments.`)) return;
+  const confirmed = await modalStore.confirm({
+    title: 'Delete Route',
+    message: `Delete route "${route.name}"? This will remove all associated stops and unassign all assigned students.`,
+    confirmText: 'Delete Route',
+    destructive: true,
+  });
+  if (!confirmed) return;
   await transportStore.deleteRoute(route.id);
+  modalStore.toast('Route deleted.', 'info');
   selectedRoute.value = transportStore.routes[0] || null;
 }
 
@@ -955,6 +971,7 @@ async function submitAssignStudent() {
   try {
     await transportStore.assignStudent(assignForm.value);
     showAssignStudentModal.value = false;
+    modalStore.toast('Student assigned to transport route!', 'success');
     if (selectedRoute.value) {
       await selectRoute(selectedRoute.value);
     }
@@ -979,6 +996,7 @@ async function submitBulkAssign() {
       bulkForm.value.route_id,
       { transport_stop_id: bulkForm.value.stop_id }
     );
+    modalStore.toast('Section students assigned to route successfully!', 'success');
     activeTab.value = 'assignments';
   } catch (err) {
     // Handled in store
@@ -986,8 +1004,15 @@ async function submitBulkAssign() {
 }
 
 async function unassignStudent(studentId) {
-  if (!confirm('Unassign this student from school transport?')) return;
+  const confirmed = await modalStore.confirm({
+    title: 'Unassign Student',
+    message: 'Unassign this student from school transport?',
+    confirmText: 'Unassign',
+    destructive: true,
+  });
+  if (!confirmed) return;
   await transportStore.unassignStudent(studentId);
+  modalStore.toast('Student unassigned from transport.', 'info');
   if (selectedRoute.value) {
     await selectRoute(selectedRoute.value);
   }

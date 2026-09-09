@@ -265,6 +265,9 @@
         </div>
       </footer>
     </div>
+
+    <!-- Global Custom Modal & Toast Notifications -->
+    <GlobalModal />
   </div>
 </template>
 
@@ -272,6 +275,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import SidebarNav from './components/SidebarNav.vue';
+import GlobalModal from './components/GlobalModal.vue';
 import { useTenantStore } from './stores/tenant';
 import { useAuthStore } from './stores/auth';
 import { useCommunicationsStore } from './stores/communications';

@@ -258,9 +258,11 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useAcademicStore } from '../stores/academic';
 import { useAuthStore } from '../stores/auth';
+import { useModalStore } from '../stores/modal';
 
 const academicStore = useAcademicStore();
 const authStore = useAuthStore();
+const modalStore = useModalStore();
 
 const newYear = reactive({ name: '', start_date: '', end_date: '' });
 const newGrade = reactive({ name: '', code: '', sequence: 1 });
@@ -272,25 +274,34 @@ async function handleCreateYear() {
     newYear.name = '';
     newYear.start_date = '';
     newYear.end_date = '';
+    modalStore.toast('Academic year created successfully!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to create academic year.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to create academic year.', { type: 'error' });
   }
 }
 
 async function handleCloseYear(yearId) {
-  if (!confirm('Are you sure you want to close this academic year? All terms, sections, and assignments will become strictly read-only historical records.')) return;
+  const confirmed = await modalStore.confirm({
+    title: 'Close Academic Year',
+    message: 'Are you sure you want to close this academic year? All terms, sections, and assignments will become strictly read-only historical records.',
+    confirmText: 'Yes, Close Year',
+    destructive: true,
+  });
+  if (!confirmed) return;
   try {
     await academicStore.closeAcademicYear(yearId);
+    modalStore.toast('Academic year closed successfully.', 'info');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to close academic year.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to close academic year.', { type: 'error' });
   }
 }
 
 async function handleActivateYear(yearId) {
   try {
     await academicStore.activateAcademicYear(yearId);
+    modalStore.toast('Academic year activated successfully!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to activate academic year.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to activate academic year.', { type: 'error' });
   }
 }
 
@@ -300,8 +311,9 @@ async function handleCreateGrade() {
     newGrade.name = '';
     newGrade.code = '';
     newGrade.sequence++;
+    modalStore.toast('Grade level created successfully!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to create grade level.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to create grade level.', { type: 'error' });
   }
 }
 
@@ -309,8 +321,9 @@ async function handleCreateSection() {
   try {
     await academicStore.createSection({ ...newSection });
     newSection.name = '';
+    modalStore.toast('Section created successfully!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to create section.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to create section.', { type: 'error' });
   }
 }
 

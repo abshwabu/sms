@@ -865,10 +865,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useLibraryStore } from '../stores/library';
+import { useModalStore } from '../stores/modal';
 import axios from 'axios';
 
 const authStore = useAuthStore();
 const libraryStore = useLibraryStore();
+const modalStore = useModalStore();
 
 const activeTab = ref('catalog');
 const catalogSearch = ref('');
@@ -1073,9 +1075,16 @@ async function submitBookForm() {
 }
 
 async function deleteBook(book) {
-    if (!confirm(`Are you sure you want to delete '${book.title}' from the catalog?`)) return;
+    const confirmed = await modalStore.confirm({
+        title: 'Delete Book from Catalog',
+        message: `Are you sure you want to delete "${book.title}" from the library catalog?`,
+        confirmText: 'Delete Book',
+        destructive: true,
+    });
+    if (!confirmed) return;
     try {
         await libraryStore.deleteBook(book.id);
+        modalStore.toast('Book deleted from catalog.', 'info');
     } catch (e) {
         // handled in store
     }
@@ -1095,16 +1104,24 @@ async function submitPayFine() {
     try {
         await libraryStore.payFine(selectedFine.value.id, payFineForm.value);
         showPayModal.value = false;
+        modalStore.toast('Fine payment recorded successfully!', 'success');
     } catch (e) {
         // handled in store
     }
 }
 
 async function openWaiveFineModal(fine) {
-    const reason = prompt('Please enter the reason for waiving this library fine:');
+    const reason = await modalStore.prompt({
+        title: 'Waive Library Fine',
+        message: `Enter the justification for waiving the overdue fine of $${fine.amount}:`,
+        placeholder: 'e.g. Administrative waiver approved by principal',
+        confirmText: 'Waive Fine',
+        required: true,
+    });
     if (!reason) return;
     try {
         await libraryStore.waiveFine(fine.id, reason);
+        modalStore.toast('Library fine waived.', 'success');
     } catch (e) {
         // handled in store
     }

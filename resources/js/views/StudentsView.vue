@@ -456,10 +456,12 @@ import { ref, computed, onMounted } from 'vue';
 import { useStudentsStore } from '../stores/students';
 import { useAcademicStore } from '../stores/academic';
 import { useAuthStore } from '../stores/auth';
+import { useModalStore } from '../stores/modal';
 
 const studentsStore = useStudentsStore();
 const academicStore = useAcademicStore();
 const authStore = useAuthStore();
+const modalStore = useModalStore();
 
 const searchQuery = ref('');
 const selectedGrade = ref('');
@@ -539,8 +541,15 @@ async function viewStudentHistory(studentId) {
 }
 
 async function handleDeleteStudent(studentId) {
-  if (confirm('Are you sure you want to remove this student?')) {
+  const confirmed = await modalStore.confirm({
+    title: 'Remove Student',
+    message: 'Are you sure you want to remove this student? All their enrollments and academic records will be affected.',
+    confirmText: 'Yes, Remove',
+    destructive: true,
+  });
+  if (confirmed) {
     await studentsStore.deleteStudent(studentId);
+    modalStore.toast('Student removed.', 'info');
   }
 }
 
@@ -564,11 +573,11 @@ function openPromotionModal() {
 async function executeImport() {
   const file = csvFileInput.value?.files?.[0];
   if (!file) {
-    alert('Please select a CSV file.');
+    modalStore.alert('Please select a CSV file to import.', { type: 'warning' });
     return;
   }
   if (!importForm.value.academic_year_id || !importForm.value.section_id) {
-    alert('Please choose an academic year and section.');
+    modalStore.alert('Please choose an academic year and section.', { type: 'warning' });
     return;
   }
 
@@ -584,8 +593,9 @@ async function executeImport() {
   try {
     const res = await studentsStore.importCsv(formData);
     importResultData.value = res;
+    modalStore.toast('Student roster imported successfully!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Import failed.');
+    modalStore.alert(err.response?.data?.error?.message || 'Import failed.', { type: 'error' });
   } finally {
     importing.value = false;
   }
@@ -598,21 +608,21 @@ function finishImport() {
 
 async function executePromotion() {
   if (!promotionForm.value.source_section_id || !promotionForm.value.target_academic_year_id) {
-    alert('Source section and target academic year are required.');
+    modalStore.alert('Source section and target academic year are required.', { type: 'warning' });
     return;
   }
   if (promotionForm.value.action !== 'graduate' && !promotionForm.value.target_section_id) {
-    alert('Please select a target section.');
+    modalStore.alert('Please select a target section.', { type: 'warning' });
     return;
   }
 
   promoting.value = true;
   try {
     const res = await studentsStore.promoteRoster(promotionForm.value);
-    alert(`Successfully processed promotion for ${res.processed_count} students!`);
+    modalStore.alert(`Successfully processed promotion for ${res.processed_count} students!`, { type: 'success', title: 'Promotion Complete' });
     showPromotionModal.value = false;
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Promotion failed.');
+    modalStore.alert(err.response?.data?.error?.message || 'Promotion failed.', { type: 'error' });
   } finally {
     promoting.value = false;
   }

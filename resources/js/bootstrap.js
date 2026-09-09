@@ -34,3 +34,18 @@ axios.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+import { useModalStore } from './stores/modal';
+
+// Graceful fallback to avoid native browser popups
+if (typeof window !== 'undefined') {
+    window.__nativeAlert = window.alert;
+    window.alert = (msg) => {
+        try {
+            const modal = useModalStore();
+            modal.alert(String(msg || ''));
+        } catch {
+            console.warn('[Custom Alert Notice]:', msg);
+        }
+    };
+}

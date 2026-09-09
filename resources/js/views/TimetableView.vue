@@ -466,8 +466,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useTimetableStore } from '../stores/timetable';
+import { useModalStore } from '../stores/modal';
 
 const timetableStore = useTimetableStore();
+const modalStore = useModalStore();
 
 const activeMode = ref('section');
 const selectedSectionId = ref(null);
@@ -563,7 +565,14 @@ async function submitAddSlot() {
 }
 
 async function deleteSlot(slotId) {
-    if (!confirm('Are you sure you want to remove this timetable slot?')) return;
+    const confirmed = await modalStore.confirm({
+        title: 'Remove Timetable Slot',
+        message: 'Are you sure you want to remove this timetable slot from the schedule?',
+        confirmText: 'Remove Slot',
+        destructive: true,
+    });
+    if (!confirmed) return;
     await timetableStore.deleteSlot(slotId, selectedSectionId.value);
+    modalStore.toast('Timetable slot removed.', 'info');
 }
 </script>

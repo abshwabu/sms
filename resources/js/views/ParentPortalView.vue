@@ -1139,10 +1139,12 @@
 import { ref, watch, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useParentStore } from '../stores/parent';
+import { useModalStore } from '../stores/modal';
 import axios from 'axios';
 
 const authStore = useAuthStore();
 const parentStore = useParentStore();
+const modalStore = useModalStore();
 
 const activeTab = ref('portal');
 const showLinkModal = ref(false);
@@ -1223,8 +1225,15 @@ async function submitLinkStudent() {
 }
 
 async function unlinkStudent(parentId, studentId) {
-    if (!confirm('Are you sure you want to unlink this student from the parent?')) return;
+    const confirmed = await modalStore.confirm({
+        title: 'Unlink Student',
+        message: 'Are you sure you want to unlink this student from the parent? The parent will no longer see this student on their portal.',
+        confirmText: 'Yes, Unlink',
+        destructive: true,
+    });
+    if (!confirmed) return;
     await parentStore.unlinkStudent(parentId, studentId);
+    modalStore.toast('Student unlinked successfully.', 'info');
 }
 
 function openCreateParentModal() {

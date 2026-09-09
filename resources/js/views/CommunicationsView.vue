@@ -865,10 +865,12 @@ import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { useCommunicationsStore } from '../stores/communications';
 import { useAuthStore } from '../stores/auth';
+import { useModalStore } from '../stores/modal';
 
 const route = useRoute();
 const commStore = useCommunicationsStore();
 const authStore = useAuthStore();
+const modalStore = useModalStore();
 
 const activeTab = ref('announcements');
 const replyText = ref('');
@@ -960,8 +962,15 @@ async function publishAnnouncement(id) {
 }
 
 async function deleteAnnouncement(id) {
-  if (!confirm('Are you sure you want to delete this announcement?')) return;
+  const confirmed = await modalStore.confirm({
+    title: 'Delete Announcement',
+    message: 'Are you sure you want to delete this announcement? This action cannot be undone.',
+    confirmText: 'Delete',
+    destructive: true,
+  });
+  if (!confirmed) return;
   await commStore.deleteAnnouncement(id);
+  modalStore.toast('Announcement deleted.', 'info');
 }
 
 function openNewThreadModal(studentId = null) {
@@ -981,6 +990,7 @@ async function submitCreateThread() {
     if (thread) {
       await commStore.fetchThread(thread.id);
     }
+    modalStore.toast('Message thread started successfully!', 'success');
   } catch (err) {
     // Handled in store
   }
@@ -995,6 +1005,7 @@ async function submitReply() {
   try {
     await commStore.replyThread(commStore.currentThread.id, replyText.value);
     replyText.value = '';
+    modalStore.toast('Reply sent.', 'success');
   } catch (err) {
     // Handled in store
   }
@@ -1006,8 +1017,15 @@ async function openTelegramTab() {
 }
 
 async function unlinkTelegram() {
-  if (!confirm('Disconnect Telegram notifications?')) return;
+  const confirmed = await modalStore.confirm({
+    title: 'Disconnect Telegram',
+    message: 'Are you sure you want to disconnect Telegram notifications for this account?',
+    confirmText: 'Disconnect',
+    destructive: true,
+  });
+  if (!confirmed) return;
   await commStore.unlinkTelegram();
+  modalStore.toast('Telegram notifications disconnected.', 'info');
 }
 
 // Notification Preferences (Prompt 14)

@@ -263,8 +263,10 @@
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
+import { useModalStore } from '../stores/modal';
 
 const authStore = useAuthStore();
+const modalStore = useModalStore();
 const activeTab = ref('invitation');
 
 const inviteForm = reactive({ email: '', role: 'teacher' });
@@ -288,8 +290,9 @@ async function sendInvite() {
   try {
     const res = await axios.post('/admin/invitations', inviteForm);
     lastInvitation.value = res.data.data;
+    modalStore.toast('Invitation dispatched successfully!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to send invitation.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to send invitation.', { type: 'error' });
   } finally {
     inviteLoading.value = false;
   }
@@ -306,8 +309,9 @@ async function acceptInvite() {
     localStorage.setItem('auth_token', token);
     localStorage.setItem('auth_user', JSON.stringify(user));
     acceptSuccess.value = `Success! Account created for ${user.name} (${user.role}). Automatically signed in.`;
+    modalStore.toast('Invitation accepted and signed in!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to accept invitation.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to accept invitation.', { type: 'error' });
   } finally {
     acceptLoading.value = false;
   }
@@ -318,8 +322,9 @@ async function generateCode() {
   try {
     const res = await axios.post('/admin/claim-codes', claimCodeForm);
     lastClaimCode.value = res.data.data;
+    modalStore.toast('Claim code generated successfully!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to generate claim code.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to generate claim code.', { type: 'error' });
   } finally {
     claimCodeLoading.value = false;
   }
@@ -336,8 +341,9 @@ async function redeemCode() {
     localStorage.setItem('auth_token', token);
     localStorage.setItem('auth_user', JSON.stringify(user));
     redeemSuccess.value = `Success! Claimed account for ${user.name} (${user.role}). Automatically signed in.`;
+    modalStore.toast('Account claimed successfully!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to claim code.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to claim code.', { type: 'error' });
   } finally {
     redeemLoading.value = false;
   }

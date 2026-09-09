@@ -437,11 +437,13 @@ import { ref, onMounted } from 'vue';
 import { useStaffStore } from '../stores/staff';
 import { useAcademicStore } from '../stores/academic';
 import { useAuthStore } from '../stores/auth';
+import { useModalStore } from '../stores/modal';
 import axios from 'axios';
 
 const staffStore = useStaffStore();
 const academicStore = useAcademicStore();
 const authStore = useAuthStore();
+const modalStore = useModalStore();
 
 const searchQuery = ref('');
 const selectedDepartment = ref('');
@@ -537,7 +539,7 @@ function openAssignmentModal() {
 
 async function handleCreateStaff() {
   if (!newStaff.value.name || !newStaff.value.email || !newStaff.value.role_title) {
-    alert('Please fill out all required fields.');
+    modalStore.alert('Please fill out all required fields.', { type: 'warning' });
     return;
   }
 
@@ -545,47 +547,55 @@ async function handleCreateStaff() {
   try {
     await staffStore.createStaffMember(newStaff.value);
     showAddModal.value = false;
+    modalStore.toast('Staff member created successfully!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to create staff member.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to create staff member.', { type: 'error' });
   } finally {
     saving.value = false;
   }
 }
 
 async function handleDeleteStaff(id) {
-  if (confirm('Are you sure you want to remove this staff member?')) {
+  const confirmed = await modalStore.confirm({
+    title: 'Remove Staff Member',
+    message: 'Are you sure you want to remove this staff member? This will remove all their section and subject assignments.',
+    confirmText: 'Yes, Remove',
+    destructive: true,
+  });
+  if (confirmed) {
     await staffStore.deleteStaffMember(id);
+    modalStore.toast('Staff member removed.', 'info');
   }
 }
 
 async function executeAssignHomeroom() {
   if (!assignForm.value.section_id || !assignForm.value.homeroom_teacher_id) {
-    alert('Please select both a section and a teacher.');
+    modalStore.alert('Please select both a section and a teacher.', { type: 'warning' });
     return;
   }
 
   try {
     await staffStore.assignHomeroom(assignForm.value.section_id, assignForm.value.homeroom_teacher_id);
-    alert('Homeroom teacher assigned successfully!');
+    modalStore.toast('Homeroom teacher assigned successfully!', 'success');
     await academicStore.fetchSections();
     await staffStore.fetchStaff();
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to assign homeroom teacher.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to assign homeroom teacher.', { type: 'error' });
   }
 }
 
 async function executeAssignSubjectTeacher() {
   if (!assignForm.value.section_id || !assignForm.value.course_id || !assignForm.value.staff_id) {
-    alert('Please select section, course, and staff member.');
+    modalStore.alert('Please select section, course, and staff member.', { type: 'warning' });
     return;
   }
 
   try {
     await staffStore.assignSubjectTeacher(assignForm.value.section_id, assignForm.value.course_id, assignForm.value.staff_id);
-    alert('Subject teacher assigned successfully!');
+    modalStore.toast('Subject teacher assigned successfully!', 'success');
     await staffStore.fetchStaff();
   } catch (err) {
-    alert(err.response?.data?.error?.message || 'Failed to assign subject teacher.');
+    modalStore.alert(err.response?.data?.error?.message || 'Failed to assign subject teacher.', { type: 'error' });
   }
 }
 </script>
