@@ -387,7 +387,7 @@ const navSections = computed(() => {
         title: 'School Community',
         items: [
           { name: 'Student Intake & Roster', path: '/students', icon: 'students' },
-          { name: 'Staff & Faculty', path: '/staff', icon: 'staff' },
+          { name: 'Teachers & Staff', path: '/staff', icon: 'staff' },
           { name: 'Parent Management', path: '/parents', icon: 'parents' },
         ],
       },

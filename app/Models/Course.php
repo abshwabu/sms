@@ -40,4 +40,9 @@ class Course extends Model
         return $this->belongsToMany(Staff::class, 'course_staff')
             ->withTimestamps();
     }
+
+    public function subjects(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Subject::class);
+    }
 }

@@ -16,21 +16,54 @@
 
       <div class="flex flex-wrap items-center gap-2.5">
         <button 
-          @click="openAssignmentModal"
+          @click="openAddTeacherModal"
           v-if="authStore.isSchoolAdmin"
-          class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5"
+          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5"
         >
-          <span>🎯 Assign to Sections</span>
+          <span>👨‍🏫 + Add Teacher</span>
         </button>
 
         <button 
           @click="openAddStaffModal"
           v-if="authStore.isSchoolAdmin"
-          class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center gap-1.5"
+          class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center gap-1.5"
         >
           <span>+ Add Staff Member</span>
         </button>
+
+        <button 
+          @click="openAssignmentModal"
+          v-if="authStore.isSchoolAdmin"
+          class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center gap-1.5"
+        >
+          <span>🎯 Assign to Sections</span>
+        </button>
       </div>
+    </div>
+
+    <!-- Quick Directory Tabs -->
+    <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <button
+        @click="setDirectoryTab('all')"
+        class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition"
+        :class="activeDirectoryTab === 'all' ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30' : 'text-slate-400 hover:text-white'"
+      >
+        👥 All Personnel
+      </button>
+      <button
+        @click="setDirectoryTab('teachers')"
+        class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5"
+        :class="activeDirectoryTab === 'teachers' ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30' : 'text-slate-400 hover:text-white'"
+      >
+        <span>👨‍🏫 Teachers &amp; Faculty</span>
+      </button>
+      <button
+        @click="setDirectoryTab('admin')"
+        class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5"
+        :class="activeDirectoryTab === 'admin' ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30' : 'text-slate-400 hover:text-white'"
+      >
+        <span>👔 Administration</span>
+      </button>
     </div>
 
     <!-- Filter & Search Toolbar -->
@@ -298,38 +331,78 @@
       </div>
     </div>
 
-    <!-- Add Staff Member Modal -->
+    <!-- Add Staff / Teacher Modal -->
     <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h2 class="text-base font-bold text-white">Add Faculty / Staff Member</h2>
-          <button @click="showAddModal = false" class="text-slate-400 hover:text-white">&times;</button>
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <span>{{ isTeacherMode ? '👨‍🏫 Add New Teacher' : '👔 Add Staff Member' }}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
+                {{ isTeacherMode ? 'Faculty' : 'Administration' }}
+              </span>
+            </h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">
+              {{ isTeacherMode ? 'Creates teacher account with credentials and assigns course teaching qualifications.' : 'Registers staff member with tenant directory access.' }}
+            </p>
+          </div>
+          <button @click="showAddModal = false" class="text-slate-400 hover:text-white text-lg">&times;</button>
         </div>
 
         <div class="space-y-3 text-xs">
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Full Name *</label>
-            <input v-model="newStaff.name" type="text" placeholder="e.g. Eleanor Vance" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white" />
+            <input v-model="newStaff.name" type="text" :placeholder="isTeacherMode ? 'e.g. Dr. Jane Goodall' : 'e.g. Eleanor Vance'" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500" />
           </div>
 
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">Email Address *</label>
-            <input v-model="newStaff.email" type="email" placeholder="e.g. e.vance@school.edu" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white" />
+            <label class="block text-slate-300 font-semibold mb-1">Email Address * (Login Username)</label>
+            <input v-model="newStaff.email" type="email" placeholder="e.g. teacher.vance@school.edu" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500" />
+          </div>
+
+          <!-- Password / Credentials Setting -->
+          <div class="p-3 bg-slate-950/70 rounded-lg border border-slate-800 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="block text-slate-300 font-semibold">Account Password</label>
+              <span class="text-[10px] text-slate-500 font-mono">Optional</span>
+            </div>
+            <input 
+              v-model="newStaff.password" 
+              type="text" 
+              placeholder="Leave empty to auto-generate secure password" 
+              class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono text-xs placeholder-slate-600 focus:outline-none focus:border-indigo-500" 
+            />
+            <p class="text-[11px] text-slate-400">
+              If left blank, an auto-generated password will be created and displayed upon saving.
+            </p>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-slate-300 font-semibold mb-1">Role Title *</label>
-              <input v-model="newStaff.role_title" type="text" placeholder="e.g. Biology Teacher" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white" />
+              <input v-model="newStaff.role_title" type="text" :placeholder="isTeacherMode ? 'e.g. Biology Teacher' : 'e.g. Registrar'" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500" />
+              <!-- Quick Role Title Presets -->
+              <div v-if="isTeacherMode" class="flex flex-wrap gap-1 mt-1.5">
+                <button 
+                  type="button" 
+                  v-for="r in ['Teacher', 'Science Teacher', 'Math Teacher', 'Homeroom Teacher']" 
+                  :key="r"
+                  @click="newStaff.role_title = r"
+                  class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] transition"
+                >
+                  {{ r }}
+                </button>
+              </div>
             </div>
             <div>
               <label class="block text-slate-300 font-semibold mb-1">Department</label>
-              <select v-model="newStaff.department" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white">
+              <select v-model="newStaff.department" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white focus:outline-none focus:border-indigo-500">
                 <option value="">Select Department</option>
                 <option value="Sciences">Sciences</option>
                 <option value="Mathematics">Mathematics</option>
                 <option value="Humanities">Humanities</option>
                 <option value="Languages">Languages</option>
+                <option value="Arts &amp; Athletics">Arts &amp; Athletics</option>
                 <option value="Administration">Administration</option>
               </select>
             </div>
@@ -338,30 +411,94 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-slate-300 font-semibold mb-1">Phone Number</label>
-              <input v-model="newStaff.phone" type="text" placeholder="+1 (555) 000-0000" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white" />
+              <input v-model="newStaff.phone" type="text" placeholder="+1 (555) 000-0000" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500" />
             </div>
             <div>
               <label class="block text-slate-300 font-semibold mb-1">Hire Date</label>
-              <input v-model="newStaff.hire_date" type="date" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white" />
+              <input v-model="newStaff.hire_date" type="date" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white focus:outline-none focus:border-indigo-500" />
             </div>
           </div>
 
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">Subjects Qualified to Teach</label>
-            <div class="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-950 rounded border border-slate-800">
+            <label class="block text-slate-300 font-semibold mb-1">Qualifications / Credentials</label>
+            <input v-model="newStaff.qualification" type="text" placeholder="e.g. M.Sc. Biology, Certified Educator" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500" />
+          </div>
+
+          <div v-if="isTeacherMode">
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-slate-300 font-semibold">Subjects Qualified to Teach</label>
+              <router-link to="/courses" class="text-[10px] text-indigo-400 hover:text-indigo-300">+ Manage Catalog</router-link>
+            </div>
+            <div v-if="coursesList.length > 0" class="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-950 rounded border border-slate-800">
               <label v-for="c in coursesList" :key="c.id" class="flex items-center gap-2 text-slate-300 text-[11px] cursor-pointer">
-                <input type="checkbox" :value="c.id" v-model="newStaff.course_ids" class="rounded border-slate-700" />
+                <input type="checkbox" :value="c.id" v-model="newStaff.course_ids" class="rounded border-slate-700 text-indigo-600" />
                 <span>{{ c.name }} ({{ c.code }})</span>
               </label>
             </div>
+            <p v-else class="text-[11px] text-slate-500 italic p-2 bg-slate-950 rounded border border-slate-800">
+              No courses found in catalog. Create courses under Courses &amp; Electives to link teaching qualifications.
+            </p>
           </div>
 
           <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
-            <button @click="showAddModal = false" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg">Cancel</button>
-            <button @click="handleCreateStaff" :disabled="saving" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg disabled:opacity-50">
-              {{ saving ? 'Saving...' : 'Save Staff Member' }}
+            <button @click="showAddModal = false" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition">Cancel</button>
+            <button @click="handleCreateStaff" :disabled="saving" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition">
+              {{ saving ? 'Saving...' : (isTeacherMode ? 'Create Teacher Account' : 'Save Staff Member') }}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credentials Confirmation Modal -->
+    <div v-if="showCredentialsModal && createdCredentials" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div class="text-center space-y-1">
+          <div class="text-3xl">🎉</div>
+          <h2 class="text-base font-bold text-white">Teacher Account Created!</h2>
+          <p class="text-xs text-slate-400">
+            Account created successfully. Provide these credentials to the teacher so they can log in.
+          </p>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5 font-mono text-xs">
+          <div class="flex items-center justify-between border-b border-slate-850 pb-2">
+            <span class="text-slate-400">Name:</span>
+            <span class="text-white font-bold">{{ createdCredentials.name }}</span>
+          </div>
+          <div class="flex items-center justify-between border-b border-slate-850 pb-2">
+            <span class="text-slate-400">Role Title:</span>
+            <span class="text-indigo-300">{{ createdCredentials.role_title }}</span>
+          </div>
+          <div class="flex items-center justify-between border-b border-slate-850 pb-2">
+            <span class="text-slate-400">Staff #:</span>
+            <span class="text-slate-200">{{ createdCredentials.staff_number }}</span>
+          </div>
+          <div class="flex items-center justify-between border-b border-slate-850 pb-2">
+            <span class="text-slate-400">Login Email:</span>
+            <span class="text-white font-bold select-all">{{ createdCredentials.email }}</span>
+          </div>
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-slate-400">Password:</span>
+            <span class="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 select-all">
+              {{ createdCredentials.temporary_password }}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex gap-2.5 pt-2">
+          <button 
+            @click="copyCredentials" 
+            class="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1.5"
+          >
+            <span>{{ copied ? '✓ Copied to Clipboard' : '📋 Copy Credentials' }}</span>
+          </button>
+          <button 
+            @click="showCredentialsModal = false" 
+            class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition"
+          >
+            Done
+          </button>
         </div>
       </div>
     </div>
@@ -434,12 +571,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { useStaffStore } from '../stores/staff';
 import { useAcademicStore } from '../stores/academic';
 import { useAuthStore } from '../stores/auth';
 import { useModalStore } from '../stores/modal';
 import axios from 'axios';
 
+const route = useRoute();
 const staffStore = useStaffStore();
 const academicStore = useAcademicStore();
 const authStore = useAuthStore();
@@ -449,20 +588,27 @@ const searchQuery = ref('');
 const selectedDepartment = ref('');
 const selectedStatus = ref('');
 
+const activeDirectoryTab = ref('all');
 const showDetailModal = ref(false);
 const showAddModal = ref(false);
+const showCredentialsModal = ref(false);
 const showAssignmentModal = ref(false);
+const isTeacherMode = ref(true);
 const saving = ref(false);
+const copied = ref(false);
+const createdCredentials = ref(null);
 
 const coursesList = ref([]);
 
 const newStaff = ref({
   name: '',
   email: '',
+  password: '',
   phone: '',
-  role_title: '',
-  department: '',
+  role_title: 'Teacher',
+  department: 'Sciences',
   hire_date: '',
+  qualification: '',
   course_ids: [],
 });
 
@@ -479,6 +625,10 @@ onMounted(async () => {
     academicStore.fetchAll(),
     fetchCourses(),
   ]);
+
+  if (route.query.action === 'add-teacher') {
+    openAddTeacherModal();
+  }
 });
 
 async function fetchCourses() {
@@ -487,6 +637,17 @@ async function fetchCourses() {
     coursesList.value = res.data.data;
   } catch (err) {
     console.error('Failed to load courses', err);
+  }
+}
+
+function setDirectoryTab(tab) {
+  activeDirectoryTab.value = tab;
+  if (tab === 'teachers') {
+    staffStore.setFilter('role_title', 'Teacher');
+  } else if (tab === 'admin') {
+    staffStore.setFilter('role_title', 'Admin');
+  } else {
+    staffStore.setFilter('role_title', '');
   }
 }
 
@@ -506,6 +667,7 @@ function resetAllFilters() {
   searchQuery.value = '';
   selectedDepartment.value = '';
   selectedStatus.value = '';
+  activeDirectoryTab.value = 'all';
   staffStore.resetFilters();
 }
 
@@ -514,17 +676,44 @@ async function viewStaffDetail(id) {
   showDetailModal.value = true;
 }
 
-function openAddStaffModal() {
+function openAddTeacherModal() {
+  isTeacherMode.value = true;
   newStaff.value = {
     name: '',
     email: '',
+    password: '',
     phone: '',
-    role_title: '',
-    department: '',
-    hire_date: '',
+    role_title: 'Teacher',
+    department: 'Sciences',
+    hire_date: new Date().toISOString().split('T')[0],
+    qualification: '',
     course_ids: [],
   };
   showAddModal.value = true;
+}
+
+function openAddStaffModal() {
+  isTeacherMode.value = false;
+  newStaff.value = {
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    role_title: 'Administrative Staff',
+    department: 'Administration',
+    hire_date: new Date().toISOString().split('T')[0],
+    qualification: '',
+    course_ids: [],
+  };
+  showAddModal.value = true;
+}
+
+function copyCredentials() {
+  if (!createdCredentials.value) return;
+  const text = `Bina Schools Login Credentials\nName: ${createdCredentials.value.name}\nRole: ${createdCredentials.value.role_title}\nStaff #: ${createdCredentials.value.staff_number}\nEmail: ${createdCredentials.value.email}\nPassword: ${createdCredentials.value.temporary_password}`;
+  navigator.clipboard?.writeText(text);
+  copied.value = true;
+  setTimeout(() => { copied.value = false; }, 3000);
 }
 
 function openAssignmentModal() {
@@ -539,15 +728,27 @@ function openAssignmentModal() {
 
 async function handleCreateStaff() {
   if (!newStaff.value.name || !newStaff.value.email || !newStaff.value.role_title) {
-    modalStore.alert('Please fill out all required fields.', { type: 'warning' });
+    modalStore.alert('Please fill out all required fields (Name, Email, Role Title).', { type: 'warning' });
     return;
   }
 
   saving.value = true;
   try {
-    await staffStore.createStaffMember(newStaff.value);
+    const created = await staffStore.createStaffMember(newStaff.value);
     showAddModal.value = false;
-    modalStore.toast('Staff member created successfully!', 'success');
+
+    if (created?.temporary_password) {
+      createdCredentials.value = {
+        name: created.user?.name || newStaff.value.name,
+        email: created.user?.email || newStaff.value.email,
+        staff_number: created.staff_number || 'N/A',
+        role_title: created.role_title,
+        temporary_password: created.temporary_password,
+      };
+      showCredentialsModal.value = true;
+    } else {
+      modalStore.toast('Staff member created successfully!', 'success');
+    }
   } catch (err) {
     modalStore.alert(err.response?.data?.error?.message || 'Failed to create staff member.', { type: 'error' });
   } finally {

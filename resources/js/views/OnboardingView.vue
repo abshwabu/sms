@@ -35,9 +35,14 @@
     <div v-if="activeTab === 'invitation'" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Admin Invitation Form -->
       <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-6 space-y-4">
-        <div>
-          <h2 class="text-base font-bold text-white">1. Admin: Send Staff Invitation</h2>
-          <p class="text-xs text-slate-400">School admins can invite teachers or administrative staff.</p>
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-bold text-white">1. Admin: Send Staff Invitation</h2>
+            <p class="text-xs text-slate-400">School admins can invite teachers or administrative staff.</p>
+          </div>
+          <router-link to="/staff?action=add-teacher" class="text-xs text-indigo-400 hover:text-indigo-300 underline font-medium">
+            + Add Directly →
+          </router-link>
         </div>
 
         <form @submit.prevent="sendInvite" class="space-y-4 text-xs">

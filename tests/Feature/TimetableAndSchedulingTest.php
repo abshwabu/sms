@@ -382,4 +382,60 @@ class TimetableAndSchedulingTest extends TestCase
 
         $this->assertContains($response->status(), [403, 404]);
     }
+
+    /**
+     * Test courses are available as subjects and can be scheduled into section timetable.
+     */
+    public function test_courses_are_available_as_subjects_and_can_be_scheduled_in_timetable(): void
+    {
+        $headers = ['X-School-Id' => $this->greenwood->id];
+
+        // 1. Admin creates a new course in the catalog
+        $courseRes = $this->actingAs($this->greenwoodAdmin)
+            ->postJson('/api/courses', [
+                'name' => 'Advanced Robotics',
+                'code' => 'ROB-901',
+                'description' => 'Autonomous robotics and microcontrollers.',
+            ], $headers);
+
+        $courseRes->assertStatus(201);
+        $courseId = $courseRes->json('data.id');
+
+        // 2. Fetch /api/subjects for Section A's grade level
+        $subjectsRes = $this->actingAs($this->greenwoodAdmin)
+            ->getJson("/api/subjects?grade_level_id={$this->sectionA->grade_level_id}", $headers);
+
+        $subjectsRes->assertStatus(200);
+        $subjects = collect($subjectsRes->json('data'));
+
+        $roboticsSubject = $subjects->firstWhere('code', 'ROB-901');
+        $this->assertNotNull($roboticsSubject, 'Course ROB-901 was not returned in /api/subjects');
+        $this->assertEquals('Advanced Robotics', $roboticsSubject['name']);
+
+        // 3. Schedule a timetable slot for Friday Period 4 using this subject
+        $slotRes = $this->actingAs($this->greenwoodAdmin)
+            ->postJson("/api/sections/{$this->sectionA->id}/timetable", [
+                'subject_id' => $roboticsSubject['id'],
+                'teacher_id' => $this->hooverTeacher->id,
+                'day_of_week' => 'friday',
+                'period_number' => 4,
+                'room' => 'Robotics Lab 3',
+            ], $headers);
+
+        $slotRes->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.subject.name', 'Advanced Robotics')
+            ->assertJsonPath('data.subject.code', 'ROB-901')
+            ->assertJsonPath('data.room', 'Robotics Lab 3');
+
+        // 4. Verify weekly section timetable grid contains the scheduled course
+        $gridRes = $this->actingAs($this->greenwoodAdmin)
+            ->getJson("/api/sections/{$this->sectionA->id}/timetable", $headers);
+
+        $gridRes->assertStatus(200);
+        $fridaySlots = $gridRes->json('data.grid.friday');
+        $this->assertNotNull($fridaySlots[4]);
+        $this->assertEquals('Advanced Robotics', $fridaySlots[4]['subject']['name']);
+        $this->assertEquals('ROB-901', $fridaySlots[4]['subject']['code']);
+    }
 }

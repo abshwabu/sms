@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreGradeRequest;
 use App\Http\Responses\ApiResponse;
 use App\Http\Traits\HasApiResponse;
+use App\Models\Course;
 use App\Models\Exam;
 use App\Models\Grade;
 use App\Models\GradingScale;
@@ -13,6 +14,7 @@ use App\Models\Section;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Services\ReportCardService;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -24,16 +26,55 @@ class GradingController extends Controller
 
     /**
      * List subjects, optionally filtered by grade level.
+     * Auto-bridges courses into scheduleable subjects if not yet mapped.
      */
     public function indexSubjects(Request $request): JsonResponse
     {
+        $tenantManager = app(TenantManager::class);
+        if ($tenantManager->hasTenant()) {
+            $schoolId = $tenantManager->getTenantId();
+
+            // Auto-bridge any courses in active school that lack a Subject record
+            $unlinkedCourses = Course::withoutGlobalScopes()
+                ->where('school_id', $schoolId)
+                ->whereDoesntHave('subjects')
+                ->get();
+
+            foreach ($unlinkedCourses as $course) {
+                Subject::firstOrCreate(
+                    [
+                        'school_id' => $schoolId,
+                        'course_id' => $course->id,
+                    ],
+                    [
+                        'grade_level_id' => null,
+                        'name' => $course->name,
+                        'code' => $course->code,
+                        'credit_hours' => 1.0,
+                        'description' => $course->description,
+                        'is_elective' => false,
+                    ]
+                );
+            }
+        }
+
         $query = Subject::with(['gradeLevel', 'course']);
 
         if ($request->filled('grade_level_id')) {
-            $query->where('grade_level_id', $request->query('grade_level_id'));
+            $gradeLevelId = (int) $request->query('grade_level_id');
+            $query->where(function ($q) use ($gradeLevelId) {
+                $q->where('grade_level_id', $gradeLevelId)
+                  ->orWhereNull('grade_level_id');
+            });
         }
 
         $subjects = $query->orderBy('name')->get();
+
+        if (! $request->filled('grade_level_id')) {
+            $subjects = $subjects->unique(function ($s) {
+                return $s->course_id ? "course_{$s->course_id}" : "subject_{$s->id}";
+            })->values();
+        }
 
         return $this->respondWithSuccess($subjects, 'Subjects retrieved successfully.');
     }
@@ -49,7 +90,7 @@ class GradingController extends Controller
         }
 
         $validated = $request->validate([
-            'grade_level_id' => ['required', 'integer', 'exists:grade_levels,id'],
+            'grade_level_id' => ['nullable', 'integer', 'exists:grade_levels,id'],
             'course_id' => ['nullable', 'integer', 'exists:courses,id'],
             'name' => ['required', 'string', 'max:100'],
             'code' => ['required', 'string', 'max:30'],

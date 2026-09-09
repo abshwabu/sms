@@ -447,4 +447,62 @@ class StaffAndTeacherManagementTest extends TestCase
             ->getJson("/api/staff/{$this->staff1->id}")
             ->assertStatus(404);
     }
+
+    /**
+     * Test admin can create a teacher with credentials and temporary password is returned.
+     */
+    public function test_admin_can_add_teacher_with_credentials_and_login(): void
+    {
+        // 1. Create with custom password
+        $resCustom = $this->actingAsTenant($this->greenwoodAdmin, $this->greenwood)
+            ->postJson('/api/staff', [
+                'name' => 'Prof. Severus Snape',
+                'email' => 'snape@greenwood.edu',
+                'role_title' => 'Potions & Chemistry Teacher',
+                'department' => 'Sciences',
+                'password' => 'SecurePass123!',
+                'course_ids' => [$this->scienceCourse->id],
+            ]);
+
+        $resCustom->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.temporary_password', 'SecurePass123!')
+            ->assertJsonPath('data.user.email', 'snape@greenwood.edu')
+            ->assertJsonPath('data.user.role', RoleEnum::TEACHER->value);
+
+        // Verify login works with custom password
+        $loginRes = $this->postJson('/api/auth/login', [
+            'email' => 'snape@greenwood.edu',
+            'password' => 'SecurePass123!',
+        ]);
+        $loginRes->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.user.role', 'teacher');
+
+        // 2. Create with auto-generated password
+        $resAuto = $this->actingAsTenant($this->greenwoodAdmin, $this->greenwood)
+            ->postJson('/api/staff', [
+                'name' => 'Prof. Minerva McGonagall',
+                'email' => 'minerva@greenwood.edu',
+                'role_title' => 'Transfiguration & Math Teacher',
+                'department' => 'Mathematics',
+            ]);
+
+        $resAuto->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => ['temporary_password']]);
+
+        $autoPass = $resAuto->json('data.temporary_password');
+        $this->assertNotEmpty($autoPass);
+        $this->assertGreaterThanOrEqual(10, strlen($autoPass));
+
+        // Verify login works with auto-generated password
+        $loginAutoRes = $this->postJson('/api/auth/login', [
+            'email' => 'minerva@greenwood.edu',
+            'password' => $autoPass,
+        ]);
+        $loginAutoRes->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.user.role', 'teacher');
+    }
 }

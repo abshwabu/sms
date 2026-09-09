@@ -50,11 +50,18 @@ export const useTimetableStore = defineStore('timetable', {
 
         async fetchTeachers() {
             try {
-                const res = await axios.get('/staff');
+                const res = await axios.get('/staff', { params: { all: true } });
                 const staffList = res.data.data || [];
                 this.teachers = staffList
                     .filter(s => s.user)
-                    .map(s => s.user);
+                    .map(s => ({
+                        id: s.user.id,
+                        staff_id: s.id,
+                        name: s.user.name,
+                        email: s.user.email,
+                        role_title: s.role_title,
+                        department: s.department,
+                    }));
                 if (this.teachers.length > 0 && !this.selectedTeacherId) {
                     this.selectedTeacherId = this.teachers[0].id;
                 }

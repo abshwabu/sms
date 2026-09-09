@@ -403,31 +403,47 @@
 
           <!-- Subject -->
           <div>
-            <label class="block text-slate-400 font-semibold mb-1">Subject</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-slate-400 font-semibold">Subject / Course *</label>
+              <router-link to="/courses" class="text-[11px] text-indigo-400 hover:text-indigo-300">
+                + Manage Catalog
+              </router-link>
+            </div>
             <select
               v-model="slotForm.subject_id"
               required
-              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"
+              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500"
             >
-              <option :value="null" disabled>Select subject...</option>
+              <option :value="null" disabled>Select subject / course...</option>
               <option v-for="sub in timetableStore.subjects" :key="sub.id" :value="sub.id">
-                {{ sub.name }} ({{ sub.code }})
+                {{ sub.name }} ({{ sub.code }}) {{ sub.is_elective ? '• Elective' : '' }}
               </option>
             </select>
+            <p v-if="timetableStore.subjects.length === 0" class="text-[11px] text-amber-400 mt-1">
+              No subjects or courses found. <router-link to="/courses" class="underline hover:text-amber-300">Add courses in catalog</router-link> to schedule here.
+            </p>
           </div>
 
           <!-- Teacher -->
           <div>
-            <label class="block text-slate-400 font-semibold mb-1">Teacher</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-slate-400 font-semibold">Teacher</label>
+              <router-link to="/staff?action=add-teacher" class="text-[11px] text-indigo-400 hover:text-indigo-300">
+                + Add Teacher
+              </router-link>
+            </div>
             <select
               v-model="slotForm.teacher_id"
-              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"
+              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500"
             >
-              <option :value="null">No Teacher Assigned</option>
+              <option :value="null">No Teacher Assigned (Self-Study / TBA)</option>
               <option v-for="t in timetableStore.teachers" :key="t.id" :value="t.id">
-                {{ t.name }}
+                {{ t.name }} &bull; {{ t.role_title || 'Faculty' }}
               </option>
             </select>
+            <p v-if="timetableStore.teachers.length === 0" class="text-[11px] text-amber-400 mt-1">
+              No teachers registered. <router-link to="/staff?action=add-teacher" class="underline hover:text-amber-300">Add a teacher</router-link>.
+            </p>
           </div>
 
           <!-- Room -->
@@ -487,13 +503,19 @@ const slotForm = ref({
 
 onMounted(async () => {
     await timetableStore.fetchSections();
-    await timetableStore.fetchSubjects();
     await timetableStore.fetchTeachers();
 
     if (timetableStore.sections.length > 0) {
         selectedSectionId.value = timetableStore.sections[0].id;
-        await timetableStore.fetchSectionTimetable(selectedSectionId.value);
+        const curSec = timetableStore.sections[0];
+        await Promise.all([
+            timetableStore.fetchSubjects(curSec.grade_level_id || null),
+            timetableStore.fetchSectionTimetable(selectedSectionId.value),
+        ]);
+    } else {
+        await timetableStore.fetchSubjects();
     }
+
     if (timetableStore.teachers.length > 0) {
         selectedTeacherId.value = timetableStore.teachers[0].id;
     }
@@ -506,6 +528,12 @@ function formatDay(day) {
 
 async function onSectionChange() {
     if (selectedSectionId.value) {
+        const curSec = timetableStore.sections.find(s => s.id === selectedSectionId.value);
+        if (curSec?.grade_level_id) {
+            await timetableStore.fetchSubjects(curSec.grade_level_id);
+        } else {
+            await timetableStore.fetchSubjects();
+        }
         await timetableStore.fetchSectionTimetable(selectedSectionId.value);
     }
 }
@@ -543,6 +571,10 @@ async function switchToStudentMode() {
 }
 
 function openAddSlotModal(day = 'monday', period = 1) {
+    const curSec = timetableStore.sections.find(s => s.id === selectedSectionId.value);
+    if (curSec?.grade_level_id && timetableStore.subjects.length === 0) {
+        timetableStore.fetchSubjects(curSec.grade_level_id);
+    }
     slotForm.value = {
         day_of_week: day,
         period_number: period,

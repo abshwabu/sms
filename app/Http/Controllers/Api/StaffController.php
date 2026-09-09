@@ -35,7 +35,7 @@ class StaffController extends Controller
         Gate::authorize('viewAny', Staff::class);
 
         $query = Staff::with([
-            'user:id,name,email,phone,status',
+            'user:id,name,email,phone,status,role',
             'courses:id,name,code',
             'homeroomSections:id,name,academic_year_id',
             'homeroomSections.academicYear:id,name',
@@ -129,9 +129,10 @@ class StaffController extends Controller
         }
 
         $staff->load([
-            'user:id,name,email,phone,status',
+            'user:id,name,email,phone,status,role',
             'courses:id,name,code',
         ]);
+        $staff->setAttribute('temporary_password', $plainPassword);
 
         return $this->respondWithSuccess($staff, 'Staff member created successfully.', Response::HTTP_CREATED);
     }

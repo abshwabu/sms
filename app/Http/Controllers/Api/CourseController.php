@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Traits\HasApiResponse;
 use App\Models\Course;
+use App\Models\Subject;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -32,6 +33,22 @@ class CourseController extends Controller
         // TenantScoped trait automatically injects active tenant's school_id
         $course = Course::create($request->validated());
 
+        // Automatically create a corresponding Subject so courses show up in Timetable Scheduling
+        Subject::firstOrCreate(
+            [
+                'school_id' => $course->school_id,
+                'course_id' => $course->id,
+                'grade_level_id' => null,
+            ],
+            [
+                'name' => $course->name,
+                'code' => $course->code,
+                'credit_hours' => 1.0,
+                'description' => $course->description,
+                'is_elective' => false,
+            ]
+        );
+
         return $this->respondWithSuccess($course, 'Course created successfully.', Response::HTTP_CREATED);
     }
 
@@ -48,6 +65,10 @@ class CourseController extends Controller
      */
     public function destroy(Course $course): JsonResponse
     {
+        Subject::where('course_id', $course->id)
+            ->whereNull('grade_level_id')
+            ->delete();
+
         $course->delete();
 
         return $this->respondWithSuccess(null, 'Course deleted successfully.');
