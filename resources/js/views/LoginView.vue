@@ -265,6 +265,71 @@
           </div>
         </div>
       </div>
+
+      <!-- Set New Password Modal (from email reset link) -->
+      <div 
+        v-if="showResetPasswordModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+      >
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white">Set New Password</h3>
+            <button @click="showResetPasswordModal = false" class="text-slate-400 hover:text-white">✕</button>
+          </div>
+          <p class="text-xs text-slate-400">
+            Enter your email and your new password to complete the password reset.
+          </p>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Email Address</label>
+              <input
+                v-model="resetForm.email"
+                type="email"
+                placeholder="name@school.edu"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">New Password</label>
+              <input
+                v-model="resetForm.password"
+                type="password"
+                placeholder="Minimum 8 characters"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Confirm New Password</label>
+              <input
+                v-model="resetForm.password_confirmation"
+                type="password"
+                placeholder="Repeat new password"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+          <div v-if="resetError" class="text-xs text-rose-400">
+            {{ resetError }}
+          </div>
+          <div class="flex items-center justify-end gap-2 pt-2">
+            <button
+              @click="showResetPasswordModal = false"
+              type="button"
+              class="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleResetPassword"
+              :disabled="resetLoading || !resetForm.password || resetForm.password !== resetForm.password_confirmation"
+              type="button"
+              class="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-50"
+            >
+              {{ resetLoading ? 'Saving...' : 'Update Password' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -288,6 +353,16 @@ const showForgotPasswordModal = ref(false);
 const forgotEmail = ref('');
 const forgotLoading = ref(false);
 const forgotSuccess = ref('');
+
+const showResetPasswordModal = ref(false);
+const resetLoading = ref(false);
+const resetError = ref('');
+const resetForm = reactive({
+  token: '',
+  email: '',
+  password: '',
+  password_confirmation: '',
+});
 
 const form = reactive({
   email: '',
@@ -368,12 +443,38 @@ async function handleForgotPassword() {
   forgotLoading.value = true;
   forgotSuccess.value = '';
   try {
-    await axios.post('/auth/forgot-password', { email: forgotEmail.value });
-    forgotSuccess.value = 'Password reset instructions have been dispatched.';
+    const res = await axios.post('/auth/forgot-password', { email: forgotEmail.value });
+    forgotSuccess.value = res.data?.message || 'Password reset link has been dispatched to your email.';
   } catch (err) {
-    forgotSuccess.value = 'If that email exists in our records, a reset link has been dispatched.';
+    forgotSuccess.value = err.response?.data?.error?.message || 'If that email exists in our records, a reset link has been dispatched.';
   } finally {
     forgotLoading.value = false;
+  }
+}
+
+async function handleResetPassword() {
+  resetError.value = '';
+  if (resetForm.password.length < 8) {
+    resetError.value = 'Password must be at least 8 characters long.';
+    return;
+  }
+  if (resetForm.password !== resetForm.password_confirmation) {
+    resetError.value = 'Passwords do not match.';
+    return;
+  }
+
+  resetLoading.value = true;
+  try {
+    const res = await axios.post('/auth/reset-password', resetForm);
+    successMessage.value = res.data?.message || 'Password has been reset successfully! Please sign in with your new password.';
+    form.email = resetForm.email;
+    form.password = '';
+    showResetPasswordModal.value = false;
+    router.replace({ path: '/login' });
+  } catch (err) {
+    resetError.value = err.response?.data?.error?.message || err.response?.data?.message || 'Unable to reset password with provided link. It may have expired.';
+  } finally {
+    resetLoading.value = false;
   }
 }
 
@@ -382,6 +483,14 @@ onMounted(() => {
   if (authStore.isAuthenticated) {
     // If already authenticated, redirect to dashboard
     router.push('/');
+    return;
+  }
+
+  const tokenParam = route.query.token || route.query.reset_token;
+  if (tokenParam) {
+    resetForm.token = String(tokenParam);
+    resetForm.email = String(route.query.email || '');
+    showResetPasswordModal.value = true;
   }
 });
 </script>

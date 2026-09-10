@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\ScopesTenantForMail;
 use App\Models\AttendanceRecord;
 use App\Models\Student;
 use App\Models\User;
@@ -14,7 +15,7 @@ use Illuminate\Queue\SerializesModels;
 
 class StudentAbsenceMail extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable, ScopesTenantForMail, SerializesModels;
 
     public function __construct(
         public Student $student,
@@ -24,6 +25,8 @@ class StudentAbsenceMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
+        $this->ensureTenantContext($this->student->school_id);
+
         $schoolName = $this->student->school?->name ?: 'Bina Schools';
         $studentName = $this->student->user?->name ?: 'Your child';
         $dateStr = $this->record->date instanceof \DateTimeInterface
@@ -37,8 +40,17 @@ class StudentAbsenceMail extends Mailable implements ShouldQueue
 
     public function content(): Content
     {
+        $this->ensureTenantContext($this->student->school_id);
+
         return new Content(
             view: 'emails.absence_alert',
         );
+    }
+
+    public function render(): string
+    {
+        $this->ensureTenantContext($this->student->school_id);
+
+        return parent::render();
     }
 }

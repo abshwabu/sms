@@ -39,8 +39,19 @@
           <button @click="errorMessage = ''" class="text-rose-400 hover:text-rose-200 text-sm">✕</button>
         </div>
 
+        <!-- Invitation Notice Banner -->
+        <div v-if="invitationToken" class="mb-6 p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-start gap-3">
+          <div class="p-2 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs mt-0.5">✉</div>
+          <div>
+            <div class="text-xs font-bold text-white">Accepting School Invitation</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">
+              You were invited to join via email <span class="font-mono text-indigo-300 font-semibold">{{ form.email }}</span>. Enter your name and choose your password to activate your account.
+            </div>
+          </div>
+        </div>
+
         <!-- Registration Mode Switcher Tabs -->
-        <div class="grid grid-cols-2 p-1 bg-slate-950/80 border border-slate-800 rounded-xl mb-6">
+        <div v-else class="grid grid-cols-2 p-1 bg-slate-950/80 border border-slate-800 rounded-xl mb-6">
           <button
             type="button"
             @click="registrationMode = 'new_school'"
@@ -72,7 +83,7 @@
 
         <form @submit.prevent="handleRegister" class="space-y-4">
           <!-- MODE 1: New School Tenant Fields -->
-          <div v-if="registrationMode === 'new_school'" class="space-y-4 p-4 rounded-xl bg-indigo-950/20 border border-indigo-500/20">
+          <div v-if="!invitationToken && registrationMode === 'new_school'" class="space-y-4 p-4 rounded-xl bg-indigo-950/20 border border-indigo-500/20">
             <div class="flex items-center gap-2 text-indigo-300 text-xs font-semibold">
               <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
               <span>School Institution Details</span>
@@ -85,7 +96,7 @@
               <input
                 v-model="form.newSchoolName"
                 type="text"
-                required
+                :required="!invitationToken && registrationMode === 'new_school'"
                 placeholder="e.g. Horizon International Academy"
                 class="w-full bg-slate-950/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition"
               />
@@ -101,7 +112,7 @@
           </div>
 
           <!-- MODE 2: Join Existing School Fields -->
-          <div v-else class="space-y-4 p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+          <div v-else-if="!invitationToken" class="space-y-4 p-4 rounded-xl bg-slate-950/60 border border-slate-800">
             <div>
               <label class="block text-xs font-semibold text-slate-300 mb-1">
                 Select Your School <span class="text-rose-400">*</span>
@@ -204,8 +215,10 @@
               type="email"
               required
               autocomplete="email"
+              :readonly="!!invitationToken"
               placeholder="eleanor@horizon.edu"
               class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+              :class="{ 'opacity-70 bg-slate-900 cursor-not-allowed': !!invitationToken }"
             />
           </div>
 
@@ -285,7 +298,7 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span>{{ authStore.loading ? 'Creating account...' : (registrationMode === 'new_school' ? 'Create School & Admin Account' : 'Register Account') }}</span>
+            <span>{{ authStore.loading ? 'Creating account...' : (invitationToken ? 'Accept Invitation & Activate Account' : (registrationMode === 'new_school' ? 'Create School & Admin Account' : 'Register Account')) }}</span>
           </button>
         </form>
 
@@ -308,14 +321,17 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useTenantStore } from '../stores/tenant';
+import axios from 'axios';
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 const tenantStore = useTenantStore();
 
+const invitationToken = ref('');
 const registrationMode = ref('new_school');
 const errorMessage = ref('');
 
@@ -382,6 +398,42 @@ async function handleRegister() {
     return;
   }
 
+  // Scenario 1: Accepting an invitation sent via email
+  if (invitationToken.value) {
+    if (!form.name || !form.password) {
+      errorMessage.value = 'Please provide your full name and password.';
+      return;
+    }
+    if (form.password.length < 8) {
+      errorMessage.value = 'Password must be at least 8 characters long.';
+      return;
+    }
+
+    try {
+      authStore.loading = true;
+      const res = await axios.post('/invitations/accept', {
+        token: invitationToken.value,
+        name: form.name,
+        phone: form.phone || null,
+        password: form.password,
+      });
+
+      const { token, user } = res.data.data;
+      authStore.token = token;
+      authStore.user = user;
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_user', JSON.stringify(user));
+      router.push('/');
+      return;
+    } catch (err) {
+      errorMessage.value = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to accept invitation. The link may have expired.';
+      return;
+    } finally {
+      authStore.loading = false;
+    }
+  }
+
+  // Scenario 2: Standard registration
   if (registrationMode.value === 'new_school' && !form.newSchoolName) {
     errorMessage.value = 'Please provide a school name.';
     return;
@@ -413,6 +465,12 @@ async function handleRegister() {
 
 onMounted(() => {
   tenantStore.fetchSchools();
+  if (route.query.invitation_token) {
+    invitationToken.value = String(route.query.invitation_token);
+    if (route.query.email) {
+      form.email = String(route.query.email);
+    }
+  }
   if (authStore.isAuthenticated) {
     router.push('/');
   }

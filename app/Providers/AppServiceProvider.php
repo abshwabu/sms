@@ -7,6 +7,7 @@ use App\Models\ParentProfile;
 use App\Policies\AttendancePolicy;
 use App\Policies\ParentProfilePolicy;
 use App\Tenancy\TenantManager;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -33,6 +34,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        ResetPassword::createUrlUsing(function ($notifiable, string $token) {
+            return url('/login?token=' . $token . '&email=' . urlencode($notifiable->getEmailForPasswordReset()));
+        });
+
         Gate::policy(ParentProfile::class, ParentProfilePolicy::class);
         Gate::policy(AttendanceRecord::class, AttendancePolicy::class);
         Gate::policy(\App\Models\ReportCard::class, \App\Policies\ReportCardPolicy::class);

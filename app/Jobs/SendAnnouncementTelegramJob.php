@@ -25,6 +25,15 @@ class SendAnnouncementTelegramJob implements ShouldQueue
      */
     public function handle(TelegramService $telegramService): void
     {
+        $schoolId = $this->announcement->school_id;
+        $tenantManager = app(\App\Tenancy\TenantManager::class);
+        if ($schoolId && (! $tenantManager->hasTenant() || $tenantManager->getTenantId() !== $schoolId)) {
+            $school = \App\Models\School::withoutGlobalScopes()->find($schoolId);
+            if ($school) {
+                $tenantManager->setTenant($school);
+            }
+        }
+
         $telegramService->dispatchAnnouncement($this->announcement, $this->recipient);
     }
 }

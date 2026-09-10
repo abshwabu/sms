@@ -10,8 +10,10 @@ use App\Http\Requests\LinkStudentRequest;
 use App\Http\Requests\StoreParentRequest;
 use App\Http\Responses\ApiResponse;
 use App\Http\Traits\HasApiResponse;
+use App\Mail\InvitationMail;
 use App\Models\Invitation;
 use App\Models\ParentProfile;
+use App\Models\School;
 use App\Models\Student;
 use App\Models\User;
 use App\Tenancy\TenantManager;
@@ -20,6 +22,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -75,10 +79,14 @@ class ParentManagementController extends Controller
 
             $plainPassword = $validated['password'] ?? Str::random(10);
 
+            $email = ! empty($validated['email'])
+                ? $validated['email']
+                : $this->generateParentEmail($school, $validated['name'], $validated['student_id'] ?? null);
+
             $user = User::create([
                 'school_id' => $school->id,
                 'name' => $validated['name'],
-                'email' => $validated['email'],
+                'email' => $email,
                 'phone' => $validated['phone'] ?? null,
                 'password' => Hash::make($plainPassword),
                 'role' => RoleEnum::PARENT->value,
@@ -248,10 +256,40 @@ class ParentManagementController extends Controller
             throw $e;
         }
 
+        try {
+            Mail::to($invitation->email)->send(new InvitationMail(
+                invitation: $invitation,
+                school: $school,
+                roleLabel: 'Parent / Guardian',
+                temporaryPassword: $temporaryPassword,
+                inviterName: $request->user()?->name,
+                recipientName: $validated['name'] ?? null
+            ));
+        } catch (\Throwable $e) {
+            Log::error('Failed to send parent invitation email: ' . $e->getMessage());
+        }
+
         return $this->respondWithSuccess([
             'parent' => $parent->load('students.user'),
             'invitation_token' => $invitation->token,
             'temporary_password' => $temporaryPassword,
         ], 'Parent invited and linked to student successfully.', Response::HTTP_CREATED);
+    }
+
+    /**
+     * Generate unique parent email address for school domain if omitted.
+     */
+    protected function generateParentEmail(School $school, string $name, ?int $studentId = null): string
+    {
+        $cleanName = Str::slug($name, '.');
+        $suffix = $studentId ? "p{$studentId}" : 'parent.' . Str::lower(Str::random(4));
+        $subdomain = $school->subdomain ?: 'school';
+        $candidate = "{$cleanName}.{$suffix}@{$subdomain}.edu";
+        $i = 1;
+        while (User::where('email', $candidate)->exists()) {
+            $candidate = "{$cleanName}.{$suffix}.{$i}@{$subdomain}.edu";
+            $i++;
+        }
+        return $candidate;
     }
 }

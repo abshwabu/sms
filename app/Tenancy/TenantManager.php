@@ -81,4 +81,26 @@ class TenantManager
             $this->bypassScoping = $previous;
         }
     }
+
+    /**
+     * Execute a callback within a specific tenant context and restore previous state.
+     */
+    public function runInTenantContext(School|int|null $school, callable $callback): mixed
+    {
+        if (! $school) {
+            return $callback();
+        }
+
+        $previous = $this->tenant;
+        if (is_int($school)) {
+            $school = School::find($school);
+        }
+        $this->tenant = $school;
+
+        try {
+            return $callback();
+        } finally {
+            $this->tenant = $previous;
+        }
+    }
 }

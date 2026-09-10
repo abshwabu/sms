@@ -356,8 +356,11 @@
           </div>
 
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">Email Address * (Login Username)</label>
-            <input v-model="newStaff.email" type="email" placeholder="e.g. teacher.vance@school.edu" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500" />
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-slate-300 font-semibold">Email Address</label>
+              <span class="text-[10px] text-slate-500 font-mono">Optional — auto-generated if left blank</span>
+            </div>
+            <input v-model="newStaff.email" type="email" placeholder="e.g. teacher.vance@school.edu (or leave blank to auto-generate)" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500" />
           </div>
 
           <!-- Password / Credentials Setting -->
@@ -727,8 +730,8 @@ function openAssignmentModal() {
 }
 
 async function handleCreateStaff() {
-  if (!newStaff.value.name || !newStaff.value.email || !newStaff.value.role_title) {
-    modalStore.alert('Please fill out all required fields (Name, Email, Role Title).', { type: 'warning' });
+  if (!newStaff.value.name || !newStaff.value.role_title) {
+    modalStore.alert('Please fill out all required fields (Name and Role Title).', { type: 'warning' });
     return;
   }
 

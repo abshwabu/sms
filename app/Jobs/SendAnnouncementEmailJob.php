@@ -33,6 +33,16 @@ class SendAnnouncementEmailJob implements ShouldQueue
             return;
         }
 
+        // Restore tenant context for this announcement's school
+        $schoolId = $this->announcement->school_id;
+        $tenantManager = app(\App\Tenancy\TenantManager::class);
+        if ($schoolId && (! $tenantManager->hasTenant() || $tenantManager->getTenantId() !== $schoolId)) {
+            $school = \App\Models\School::withoutGlobalScopes()->find($schoolId);
+            if ($school) {
+                $tenantManager->setTenant($school);
+            }
+        }
+
         // Deduplication check: prevent duplicate spam on email channel
         $alreadyDispatched = NotificationDispatch::withoutGlobalScopes()
             ->where('school_id', $this->announcement->school_id)

@@ -966,12 +966,14 @@
               />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-semibold text-slate-300">Email Address</label>
+                <span class="text-[10px] text-slate-500 font-mono">Optional — auto-generated</span>
+              </div>
               <input 
                 v-model="createForm.email" 
                 type="email" 
-                required 
-                placeholder="ned@springfield.org"
+                placeholder="e.g. parent@example.com (or leave blank)"
                 class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
@@ -1252,7 +1254,11 @@ function openCreateParentModal() {
 
 async function submitCreateParent() {
     try {
-        await parentStore.createParent(createForm.value);
+        const payload = { ...createForm.value };
+        if (!payload.email) {
+            delete payload.email;
+        }
+        await parentStore.createParent(payload);
         showCreateModal.value = false;
     } catch (e) {
         // error handled in store

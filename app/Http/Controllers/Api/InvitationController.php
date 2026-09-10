@@ -8,11 +8,15 @@ use App\Http\Requests\AcceptInvitationRequest;
 use App\Http\Requests\InviteStaffRequest;
 use App\Http\Responses\ApiResponse;
 use App\Http\Traits\HasApiResponse;
+use App\Mail\InvitationMail;
 use App\Models\Invitation;
+use App\Models\School;
 use App\Models\User;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
@@ -59,6 +63,23 @@ class InvitationController extends Controller
             'invited_by' => $request->user()->id,
             'expires_at' => now()->addDays(7),
         ]);
+
+        $school = School::find($schoolId);
+        try {
+            $roleLabel = match ($invitation->role) {
+                'school_admin' => 'School Administrator',
+                'teacher' => 'Teacher / Faculty Staff',
+                default => ucfirst(str_replace('_', ' ', $invitation->role)),
+            };
+            Mail::to($invitation->email)->send(new InvitationMail(
+                invitation: $invitation,
+                school: $school,
+                roleLabel: $roleLabel,
+                inviterName: $request->user()?->name
+            ));
+        } catch (\Throwable $e) {
+            Log::error('Failed to send staff invitation email: ' . $e->getMessage());
+        }
 
         return $this->respondWithSuccess([
             'id' => $invitation->id,

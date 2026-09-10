@@ -83,12 +83,20 @@ class StaffController extends Controller
                 'school_id' => $school->id,
             ]);
 
+            $staffNumber = ! empty($validated['staff_number'])
+                ? $validated['staff_number']
+                : $this->generateStaffNumber($school);
+
+            $email = ! empty($validated['email'])
+                ? $validated['email']
+                : $this->generateStaffEmail($school, $validated['name'], $staffNumber);
+
             $plainPassword = $validated['password'] ?? Str::random(10);
 
             $user = User::create([
                 'school_id' => $school->id,
                 'name' => $validated['name'],
-                'email' => $validated['email'],
+                'email' => $email,
                 'phone' => $validated['phone'] ?? null,
                 'password' => Hash::make($plainPassword),
                 'role' => RoleEnum::TEACHER->value,
@@ -96,10 +104,6 @@ class StaffController extends Controller
                 'email_verified_at' => now(),
             ]);
             $user->assignRole($teacherRole);
-
-            $staffNumber = ! empty($validated['staff_number'])
-                ? $validated['staff_number']
-                : $this->generateStaffNumber($school);
 
             $staff = Staff::create([
                 'school_id' => $school->id,
@@ -250,6 +254,23 @@ class StaffController extends Controller
             $candidate = sprintf('%s-%s-%05d', $prefix, $year, $count);
         }
 
+        return $candidate;
+    }
+
+    /**
+     * Generate unique staff email address for school domain if omitted.
+     */
+    protected function generateStaffEmail(School $school, string $name, string $staffNumber): string
+    {
+        $cleanName = Str::slug($name, '.');
+        $cleanStaff = Str::slug($staffNumber, '.');
+        $subdomain = $school->subdomain ?: 'school';
+        $candidate = "{$cleanName}.{$cleanStaff}@{$subdomain}.edu";
+        $i = 1;
+        while (User::where('email', $candidate)->exists()) {
+            $candidate = "{$cleanName}.{$cleanStaff}.{$i}@{$subdomain}.edu";
+            $i++;
+        }
         return $candidate;
     }
 }
