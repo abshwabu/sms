@@ -312,10 +312,16 @@ const routeMap = {
 };
 
 const currentCategory = computed(() => {
+  if (route.path === '/auth') {
+    return authStore.isSuperAdmin ? 'Administration' : 'Account';
+  }
   return routeMap[route.path]?.category || 'Management';
 });
 
 const currentTitle = computed(() => {
+  if (route.path === '/auth') {
+    return authStore.isSuperAdmin ? 'Platform Security & RBAC Inspector' : 'My Profile & Account';
+  }
   return routeMap[route.path]?.title || 'Overview';
 });
 

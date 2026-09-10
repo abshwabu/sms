@@ -157,6 +157,11 @@ router.beforeEach((to, from, next) => {
             role !== 'school_admin' && role !== 'super_admin') {
             return next({ path: '/' });
         }
+
+        // Student roster intake and catalog management are restricted from students and parents
+        if ((to.path === '/students' || to.path === '/courses') && (role === 'student' || role === 'parent')) {
+            return next({ path: '/' });
+        }
     }
 
     next();

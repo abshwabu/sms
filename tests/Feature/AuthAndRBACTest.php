@@ -233,5 +233,51 @@ class AuthAndRBACTest extends TestCase
             'user_id' => $response->json('data.user.id'),
         ]);
     }
+
+    /**
+     * Test authenticated user can change password.
+     */
+    public function test_authenticated_user_can_change_password(): void
+    {
+        $user = User::where('email', 'teacher@greenwood.edu')->firstOrFail();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/auth/change-password', [
+                'current_password' => 'password123',
+                'password' => 'newSecretPassword123!',
+                'password_confirmation' => 'newSecretPassword123!',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true);
+
+        // Verify new password works
+        $loginRes = $this->postJson('/api/auth/login', [
+            'email' => 'teacher@greenwood.edu',
+            'password' => 'newSecretPassword123!',
+        ]);
+        $loginRes->assertOk();
+    }
+
+    /**
+     * Test change password fails with incorrect current password.
+     */
+    public function test_change_password_fails_with_incorrect_current_password(): void
+    {
+        $user = User::where('email', 'teacher@greenwood.edu')->firstOrFail();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/auth/change-password', [
+                'current_password' => 'wrongPassword',
+                'password' => 'newSecretPassword123!',
+                'password_confirmation' => 'newSecretPassword123!',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error.code', 'INVALID_CURRENT_PASSWORD');
+    }
 }
 

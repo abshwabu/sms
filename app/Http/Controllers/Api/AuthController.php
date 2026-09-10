@@ -263,6 +263,33 @@ class AuthController extends Controller
     }
 
     /**
+     * Change current user password.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return ApiResponse::error(
+                'The current password you entered is incorrect.',
+                'INVALID_CURRENT_PASSWORD',
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        $user->forceFill([
+            'password' => Hash::make($validated['password']),
+        ])->save();
+
+        return $this->respondWithSuccess(null, 'Password changed successfully.');
+    }
+
+    /**
      * Send password reset link to user.
      */
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse

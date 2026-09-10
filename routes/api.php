@@ -74,6 +74,7 @@ Route::get('/payments/chapa/callback', [ChapaWebhookController::class, 'handleCa
 Route::middleware('auth:sanctum')->group(function () {
     // Current user profile & session
     Route::get('/auth/me', [AuthController::class, 'me'])->name('api.auth.me');
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword'])->name('api.auth.change-password');
     Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard')->middleware('tenant.user');
 
