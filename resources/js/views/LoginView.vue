@@ -373,13 +373,6 @@ const form = reactive({
 
 const demoPersonas = [
   {
-    label: 'Super Admin',
-    role: 'platform',
-    email: 'superadmin@bina.test',
-    password: 'password123',
-    badgeClass: 'bg-purple-500/10 text-purple-400',
-  },
-  {
     label: 'School Admin',
     role: 'admin',
     email: 'admin@greenwood.edu',

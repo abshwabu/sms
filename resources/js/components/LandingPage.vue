@@ -103,7 +103,7 @@
         </router-link>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- 1. School Admin Persona -->
         <button
           @click="$emit('demo-login', 'admin@greenwood.edu')"
@@ -221,35 +221,6 @@
           </div>
           <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-sky-400 font-medium">
             <span>bart.simpson@greenwood.edu</span>
-            <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
-          </div>
-        </button>
-
-        <!-- 5. Platform Super-Admin Persona -->
-        <button
-          @click="$emit('demo-login', 'superadmin@bina.test')"
-          class="p-5 rounded-2xl bg-slate-900/90 border border-purple-500/30 hover:border-purple-500 hover:bg-slate-850 text-left transition duration-200 group flex flex-col justify-between shadow-sm sm:col-span-2 lg:col-span-2"
-        >
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center group-hover:scale-105 transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 font-semibold border border-purple-500/20">
-                1-Click Login
-              </span>
-            </div>
-            <h3 class="text-sm font-bold text-white group-hover:text-purple-300 transition">
-              Platform Super-Administrator
-            </h3>
-            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-              Full cross-tenant administrative control: provision new schools, inspect health diagnostics, monitor total student enrollments, and configure tenant isolation.
-            </p>
-          </div>
-          <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-purple-400 font-medium">
-            <span>superadmin@bina.test</span>
             <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
           </div>
         </button>
