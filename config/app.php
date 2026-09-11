@@ -56,6 +56,8 @@ return [
 
     'domain' => env('APP_DOMAIN', 'localhost'),
 
+    'resolve_tenant_subdomain' => env('TENANT_RESOLVE_SUBDOMAIN', true),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

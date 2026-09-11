@@ -25,6 +25,15 @@ class ResolveTenant
         'mail',
         'staging',
         'localhost',
+        'sms',
+        'portal',
+        'dev',
+        'test',
+        'demo',
+        'auth',
+        'panel',
+        'cpanel',
+        'webmail',
     ];
 
     public function __construct(
@@ -100,31 +109,71 @@ class ResolveTenant
      */
     protected function extractSubdomain(Request $request): ?string
     {
-        $host = $request->getHost();
+        // Check if subdomain resolution is explicitly disabled
+        if (config('app.resolve_tenant_subdomain', env('TENANT_RESOLVE_SUBDOMAIN', true)) === false) {
+            return null;
+        }
+
+        $host = strtolower($request->getHost());
 
         // Skip IP addresses
         if (filter_var($host, FILTER_VALIDATE_IP)) {
             return null;
         }
 
-        // Check configured APP_DOMAIN if available
-        $appDomain = config('app.domain');
-        if ($appDomain && str_ends_with($host, '.' . $appDomain)) {
+        // Check configured APP_DOMAIN
+        $appDomain = strtolower((string) config('app.domain', ''));
+
+        // Check host from configured APP_URL
+        $appUrlHost = strtolower((string) parse_url(config('app.url', ''), PHP_URL_HOST));
+
+        // If the current host matches the base application domain or APP_URL host exactly,
+        // it is the root application platform, NOT a tenant subdomain.
+        if (($appDomain && $host === $appDomain) || ($appUrlHost && $host === $appUrlHost)) {
+            return null;
+        }
+
+        // Check if host is a subdomain of APP_DOMAIN (e.g. greenwood.sms.abshewabu.dev or greenwood.example.com)
+        if ($appDomain && $appDomain !== 'localhost' && str_ends_with($host, '.' . $appDomain)) {
             $prefix = substr($host, 0, -strlen('.' . $appDomain));
             $parts = explode('.', $prefix);
-            return end($parts) ?: null;
+            $candidate = end($parts) ?: null;
+            return ($candidate && !in_array($candidate, $this->reservedSubdomains, true)) ? $candidate : null;
+        }
+
+        // Check if host is a subdomain of APP_URL host
+        if ($appUrlHost && $appUrlHost !== 'localhost' && str_ends_with($host, '.' . $appUrlHost)) {
+            $prefix = substr($host, 0, -strlen('.' . $appUrlHost));
+            $parts = explode('.', $prefix);
+            $candidate = end($parts) ?: null;
+            return ($candidate && !in_array($candidate, $this->reservedSubdomains, true)) ? $candidate : null;
         }
 
         $parts = explode('.', $host);
 
         // Subdomains on localhost, e.g. greenwood.localhost
         if (count($parts) >= 2 && end($parts) === 'localhost') {
-            return $parts[count($parts) - 2];
+            $candidate = $parts[count($parts) - 2];
+            return (!in_array($candidate, $this->reservedSubdomains, true)) ? $candidate : null;
         }
 
-        // Subdomains on standard domain: greenwood.example.com -> parts: ['greenwood', 'example', 'com']
+        // Subdomains on standard domains: greenwood.example.com -> parts: ['greenwood', 'example', 'com']
         if (count($parts) >= 3) {
-            return $parts[0];
+            $candidate = $parts[0];
+            if (in_array($candidate, $this->reservedSubdomains, true)) {
+                return null;
+            }
+
+            // If base domain matches configured appDomain or appUrlHost
+            $baseDomain = implode('.', array_slice($parts, 1));
+            if ($baseDomain === $appDomain || $baseDomain === $appUrlHost) {
+                return $candidate;
+            }
+
+            // Fallback for standard 2-level TLDs or localhost defaults
+            if (empty($appDomain) || $appDomain === 'localhost') {
+                return $candidate;
+            }
         }
 
         return null;
