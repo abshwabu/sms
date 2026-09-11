@@ -232,23 +232,42 @@ class TransportController extends Controller
     }
 
     /**
-     * Student self-view of their assigned bus route and stop.
+     * Student or Parent self-view of assigned bus route and stop.
      */
     public function myStudentTransport(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        if (! $user->isStudent() || ! $user->student) {
-            return ApiResponse::error(
-                'Only student accounts can view their assigned transport route.',
-                'FORBIDDEN_STUDENT_ACCESS',
-                Response::HTTP_FORBIDDEN
-            );
+        if ($user->isStudent() && $user->student) {
+            $payload = $this->transportService->getStudentTransportPayload($user->student);
+            return $this->respondWithSuccess($payload, 'Student transport details retrieved.');
         }
 
-        $payload = $this->transportService->getStudentTransportPayload($user->student);
+        if ($user->isParent() && $user->parentProfile) {
+            $query = $user->parentProfile->students();
+            if ($request->filled('student_id')) {
+                $student = $query->where('students.id', $request->input('student_id'))->first();
+            } else {
+                $student = $query->first();
+            }
 
-        return $this->respondWithSuccess($payload, 'Student transport details retrieved.');
+            if ($student) {
+                $payload = $this->transportService->getStudentTransportPayload($student);
+                return $this->respondWithSuccess($payload, 'Child transport details retrieved.');
+            }
+
+            return $this->respondWithSuccess([
+                'assigned' => false,
+                'has_transport' => false,
+                'message' => 'No linked students found.',
+            ], 'No linked students found.');
+        }
+
+        return ApiResponse::error(
+            'Only student or parent accounts can view transport schedules.',
+            'FORBIDDEN_STUDENT_ACCESS',
+            Response::HTTP_FORBIDDEN
+        );
     }
 
     /**

@@ -12,7 +12,8 @@ class CommunicationThreadPolicy extends BaseTenantPolicy
         return $user->isSuperAdmin()
             || $user->isSchoolAdmin()
             || $user->isTeacher()
-            || $user->isParent();
+            || $user->isParent()
+            || $user->isStudent();
     }
 
     public function view(User $user, CommunicationThread $thread): bool

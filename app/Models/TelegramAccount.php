@@ -46,6 +46,6 @@ class TelegramAccount extends Model
 
     public function isCodeValid(): bool
     {
-        return $this->link_code_expires_at->isFuture();
+        return $this->link_code_expires_at ? $this->link_code_expires_at->isFuture() : false;
     }
 }

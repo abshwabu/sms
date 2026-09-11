@@ -25,6 +25,7 @@ class TelegramController extends Controller
     {
         $user = $request->user();
         $account = $user->telegramAccount;
+        $botUsername = $user->school?->telegram_bot_username ?: config('services.telegram.bot_username');
 
         return $this->respondWithSuccess([
             'is_linked' => (bool) ($account?->is_linked),
@@ -32,6 +33,7 @@ class TelegramController extends Controller
             'first_name' => $account?->first_name,
             'linked_at' => $account?->linked_at?->toIso8601String(),
             'notifications_enabled' => (bool) ($account?->notifications_enabled ?? true),
+            'bot_username' => $botUsername,
         ], 'Telegram link status retrieved.');
     }
 
@@ -80,8 +82,12 @@ class TelegramController extends Controller
     public function webhook(Request $request, School $school): JsonResponse
     {
         $update = $request->all();
-        $result = $this->telegramService->handleWebhook($school, $update);
+        $result = app(\App\Tenancy\TenantManager::class)->runInTenantContext(
+            $school,
+            fn () => $this->telegramService->handleWebhook($school, $update)
+        );
 
         return response()->json($result);
     }
 }
+

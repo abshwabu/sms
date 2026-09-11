@@ -886,6 +886,21 @@
           Linking student to parent: <strong class="text-emerald-400">{{ selectedParentForLink?.user?.name }}</strong>
         </p>
 
+        <!-- Inline Error Banner -->
+        <div v-if="linkError" class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <span>⚠️</span>
+            <span>{{ linkError }}</span>
+          </span>
+          <button type="button" @click="linkError = null" class="text-rose-400 hover:text-white">✕</button>
+        </div>
+
+        <!-- All Students Linked Notice -->
+        <div v-if="allAvailableStudentsLinked" class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
+          <span>ℹ️</span>
+          <span>All enrolled students in this school are already linked to this parent.</span>
+        </div>
+
         <form @submit.prevent="submitLinkStudent" class="space-y-4">
           <div>
             <label class="block text-xs font-semibold text-slate-300 mb-1">Select Student</label>
@@ -895,8 +910,13 @@
               class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
             >
               <option value="">-- Select a Student --</option>
-              <option v-for="stu in availableStudents" :key="stu.id" :value="stu.id">
-                {{ stu.user?.name }} ({{ stu.admission_number }}) - {{ stu.current_section?.name || 'No Section' }}
+              <option 
+                v-for="stu in availableStudents" 
+                :key="stu.id" 
+                :value="stu.id"
+                :disabled="isStudentAlreadyLinked(stu.id)"
+              >
+                {{ stu.user?.name }} ({{ stu.admission_number }}) - {{ stu.current_section?.name || 'No Section' }} {{ isStudentAlreadyLinked(stu.id) ? '— [Already linked]' : '' }}
               </option>
             </select>
           </div>
@@ -935,8 +955,8 @@
             </button>
             <button 
               type="submit" 
-              :disabled="parentStore.actionLoading"
-              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white rounded-lg shadow-sm"
+              :disabled="parentStore.actionLoading || !linkForm.student_id || isStudentAlreadyLinked(linkForm.student_id)"
+              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold text-white rounded-lg shadow-sm transition"
             >
               {{ parentStore.actionLoading ? 'Linking...' : 'Link Student' }}
             </button>
@@ -1138,7 +1158,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useParentStore } from '../stores/parent';
 import { useModalStore } from '../stores/modal';
@@ -1155,10 +1175,21 @@ const showInviteModal = ref(false);
 
 const selectedParentForLink = ref(null);
 const availableStudents = ref([]);
+const linkError = ref(null);
+
+function isStudentAlreadyLinked(studentId) {
+    if (!selectedParentForLink.value?.students || !studentId) return false;
+    return selectedParentForLink.value.students.some(s => Number(s.id) === Number(studentId));
+}
+
+const allAvailableStudentsLinked = computed(() => {
+    if (!availableStudents.value.length) return false;
+    return availableStudents.value.every(s => isStudentAlreadyLinked(s.id));
+});
 
 const linkForm = ref({
     student_id: '',
-    relationship: 'father',
+    relationship: 'guardian',
     is_primary_contact: false,
 });
 
@@ -1207,6 +1238,7 @@ function switchToDirectory() {
 
 function openLinkStudentModal(parent) {
     selectedParentForLink.value = parent;
+    linkError.value = null;
     linkForm.value = {
         student_id: '',
         relationship: 'guardian',
@@ -1218,11 +1250,22 @@ function openLinkStudentModal(parent) {
 
 async function submitLinkStudent() {
     if (!selectedParentForLink.value?.id) return;
+    if (!linkForm.value.student_id) {
+        linkError.value = 'Please select a student to link.';
+        return;
+    }
+    if (isStudentAlreadyLinked(linkForm.value.student_id)) {
+        linkError.value = 'This student is already linked to this parent.';
+        return;
+    }
+    linkError.value = null;
     try {
         await parentStore.linkStudent(selectedParentForLink.value.id, linkForm.value);
         showLinkModal.value = false;
+        modalStore.toast('Student linked to parent successfully.', 'success');
     } catch (e) {
-        // error handled in store
+        linkError.value = parentStore.error || 'Failed to link student to parent.';
+        modalStore.toast(linkError.value, 'error');
     }
 }
 

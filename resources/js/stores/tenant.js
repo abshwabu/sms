@@ -80,5 +80,26 @@ export const useTenantStore = defineStore('tenant', {
             localStorage.removeItem('active_school_id');
             localStorage.removeItem('active_school_subdomain');
         },
+
+        async updateSchoolTelegram(schoolId, payload) {
+            try {
+                const res = await axios.put(`/schools/${schoolId}/telegram`, payload);
+                await this.fetchSchools();
+                return { success: true, data: res.data.data, message: res.data.message };
+            } catch (err) {
+                const msg = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to update school Telegram bot.';
+                return { success: false, error: msg };
+            }
+        },
+
+        async testSchoolTelegram(schoolId, token = null) {
+            try {
+                const res = await axios.post(`/schools/${schoolId}/telegram/test`, { token });
+                return { success: true, data: res.data.data };
+            } catch (err) {
+                const msg = err.response?.data?.error?.message || err.response?.data?.message || 'Telegram connection test failed.';
+                return { success: false, error: msg };
+            }
+        },
     },
 });

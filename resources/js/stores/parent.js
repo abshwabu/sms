@@ -1,6 +1,15 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 
+function extractErrorMessage(err, defaultMsg) {
+    const errData = err.response?.data;
+    if (errData?.error?.details && typeof errData.error.details === 'object') {
+        const messages = Object.values(errData.error.details).flat();
+        if (messages.length) return messages.join(' ');
+    }
+    return errData?.error?.message || errData?.message || defaultMsg;
+}
+
 export const useParentStore = defineStore('parent', {
     state: () => ({
         children: [],
@@ -93,15 +102,15 @@ export const useParentStore = defineStore('parent', {
             this.error = null;
             try {
                 const res = await axios.post(`/parents/${parentId}/link-student`, {
-                    student_id,
-                    relationship,
-                    is_primary_contact,
+                    student_id: Number(student_id),
+                    relationship: relationship || 'guardian',
+                    is_primary_contact: Boolean(is_primary_contact),
                 });
                 this.successMessage = 'Student linked to parent successfully!';
                 await this.fetchParents(this.pagination.current_page);
                 return res.data.data;
             } catch (err) {
-                this.error = err.response?.data?.error?.message || 'Failed to link student to parent.';
+                this.error = extractErrorMessage(err, 'Failed to link student to parent.');
                 throw err;
             } finally {
                 this.actionLoading = false;
@@ -116,7 +125,7 @@ export const useParentStore = defineStore('parent', {
                 this.successMessage = 'Student unlinked successfully!';
                 await this.fetchParents(this.pagination.current_page);
             } catch (err) {
-                this.error = err.response?.data?.error?.message || 'Failed to unlink student.';
+                this.error = extractErrorMessage(err, 'Failed to unlink student.');
                 throw err;
             } finally {
                 this.actionLoading = false;
@@ -132,7 +141,7 @@ export const useParentStore = defineStore('parent', {
                 await this.fetchParents(1);
                 return res.data.data;
             } catch (err) {
-                this.error = err.response?.data?.error?.message || 'Failed to create parent account.';
+                this.error = extractErrorMessage(err, 'Failed to create parent account.');
                 throw err;
             } finally {
                 this.actionLoading = false;
@@ -148,7 +157,7 @@ export const useParentStore = defineStore('parent', {
                 await this.fetchParents(1);
                 return res.data.data;
             } catch (err) {
-                this.error = err.response?.data?.error?.message || 'Failed to send parent invitation.';
+                this.error = extractErrorMessage(err, 'Failed to send parent invitation.');
                 throw err;
             } finally {
                 this.actionLoading = false;

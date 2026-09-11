@@ -116,8 +116,8 @@ class Announcement extends Model
                             }
                         } elseif ($user->isParent() && $user->parentProfile) {
                             $childSecIds = $user->parentProfile->students()
-                                ->whereNotNull('current_section_id')
-                                ->pluck('current_section_id');
+                                ->whereNotNull('students.current_section_id')
+                                ->pluck('students.current_section_id');
 
                             $childGradeLevelIds = Section::whereIn('id', $childSecIds)
                                 ->pluck('grade_level_id')
@@ -163,8 +163,8 @@ class Announcement extends Model
                             $targetQ->where('section_id', $user->student->current_section_id);
                         } elseif ($user->isParent() && $user->parentProfile) {
                             $childSectionIds = $user->parentProfile->students()
-                                ->whereNotNull('current_section_id')
-                                ->pluck('current_section_id');
+                                ->whereNotNull('students.current_section_id')
+                                ->pluck('students.current_section_id');
 
                             if ($childSectionIds->isNotEmpty()) {
                                 $targetQ->whereIn('section_id', $childSectionIds);

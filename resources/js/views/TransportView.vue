@@ -110,7 +110,7 @@
         class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition"
         :class="activeTab === 'my-bus' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white bg-slate-900 border border-slate-800'"
       >
-        🚏 My Bus Schedule
+        {{ authStore.isParent ? '🚏 My Children\'s Bus Route' : '🚏 My Bus Schedule' }}
       </button>
     </div>
 
@@ -452,17 +452,49 @@
       </form>
     </div>
 
-    <!-- TAB 4: MY BUS SCHEDULE (STUDENT VIEW / ACCEPTANCE CRITERION 2) -->
+    <!-- TAB 4: MY BUS SCHEDULE (STUDENT & PARENT VIEW) -->
     <div v-if="activeTab === 'my-bus'" class="space-y-6 max-w-3xl mx-auto">
+      <!-- Parent Linked Child Switcher -->
+      <div v-if="authStore.isParent && parentChildren.length > 0" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div class="text-xs font-bold text-white flex items-center gap-2">
+            <span>👨‍👧‍👦 Child Transport Schedule</span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              {{ parentChildren.length }} Linked Student(s)
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-0.5">
+            Select a child to view their assigned morning pickup and afternoon dropoff bus schedule.
+          </p>
+        </div>
+
+        <div v-if="parentChildren.length > 1" class="flex items-center gap-1.5 flex-wrap">
+          <button
+            v-for="child in parentChildren"
+            :key="child.id"
+            type="button"
+            @click="selectParentChild(child)"
+            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5"
+            :class="selectedChildId === child.id ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'"
+          >
+            <span>👤</span>
+            <span>{{ child.user?.name || child.name }}</span>
+          </button>
+        </div>
+      </div>
+
       <div v-if="transportStore.loading" class="text-center py-12 text-slate-500 text-sm">
         Loading transport information...
       </div>
 
       <div v-else-if="!transportStore.myTransport || !transportStore.myTransport.has_transport" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-8 text-center space-y-3">
         <div class="text-4xl">🚏</div>
-        <h3 class="text-base font-bold text-white">No Bus Route Assigned</h3>
+        <h3 class="text-base font-bold text-white">
+          {{ authStore.isParent ? `No Bus Route Assigned to ${activeChildName}` : 'No Bus Route Assigned' }}
+        </h3>
         <p class="text-xs text-slate-400 max-w-md mx-auto">
-          You currently do not have a school transport route assigned. Please contact the school administration or your homeroom teacher for route enrollment.
+          {{ authStore.isParent ? `${activeChildName} currently does not have a school transport route assigned.` : 'You currently do not have a school transport route assigned.' }}
+          Please contact the school administration or homeroom teacher for route enrollment.
         </p>
       </div>
 
@@ -475,7 +507,7 @@
             </p>
           </div>
           <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-            Active Commuter
+            {{ authStore.isParent ? `Active Commuter (${activeChildName})` : 'Active Commuter' }}
           </span>
         </div>
 
@@ -799,6 +831,13 @@ const activeTab = ref('routes');
 const selectedRoute = ref(null);
 const sections = ref([]);
 const students = ref([]);
+const parentChildren = ref([]);
+const selectedChildId = ref(null);
+
+const activeChildName = computed(() => {
+  const c = parentChildren.value.find(k => k.id === selectedChildId.value);
+  return c ? (c.user?.name || c.name || `Student #${c.id}`) : 'Child';
+});
 
 // Modals
 const showCreateRouteModal = ref(false);
@@ -1018,12 +1057,48 @@ async function unassignStudent(studentId) {
   }
 }
 
+async function fetchParentChildren() {
+  try {
+    const res = await axios.get('/parent/children');
+    parentChildren.value = res.data.data || [];
+    if (parentChildren.value.length > 0 && !selectedChildId.value) {
+      selectedChildId.value = parentChildren.value[0].id;
+    }
+  } catch (err) {
+    console.error('Failed to fetch parent children:', err);
+  }
+}
+
+async function selectParentChild(child) {
+  selectedChildId.value = child.id;
+  transportStore.loading = true;
+  try {
+    const res = await transportStore.fetchChildTransport(child.id);
+    transportStore.myTransport = res;
+  } finally {
+    transportStore.loading = false;
+  }
+}
+
 async function loadMyTransport() {
   activeTab.value = 'my-bus';
-  await transportStore.fetchMyStudentTransport();
+  if (authStore.isParent) {
+    if (parentChildren.value.length === 0) {
+      await fetchParentChildren();
+    }
+    if (selectedChildId.value) {
+      const child = parentChildren.value.find(k => k.id === selectedChildId.value) || parentChildren.value[0];
+      if (child) {
+        await selectParentChild(child);
+      }
+    }
+  } else {
+    await transportStore.fetchMyStudentTransport();
+  }
 }
 
 async function fetchMetadata() {
+  if (!canManage.value) return;
   try {
     const [secRes, stuRes] = await Promise.all([
       axios.get('/sections'),
@@ -1037,13 +1112,29 @@ async function fetchMetadata() {
 }
 
 onMounted(async () => {
-  await Promise.all([
+  const promises = [
     transportStore.fetchRoutes(),
-    transportStore.fetchAssignments(),
-    fetchMetadata(),
-  ]);
+  ];
 
-  if (transportStore.routes.length > 0) {
+  if (canManage.value) {
+    promises.push(transportStore.fetchAssignments());
+    promises.push(fetchMetadata());
+  } else if (authStore.isParent) {
+    promises.push(fetchParentChildren());
+  } else if (authStore.isStudent) {
+    promises.push(transportStore.fetchMyStudentTransport());
+  }
+
+  await Promise.all(promises);
+
+  if (authStore.isParent) {
+    activeTab.value = 'my-bus';
+    if (parentChildren.value.length > 0) {
+      await selectParentChild(parentChildren.value[0]);
+    }
+  } else if (authStore.isStudent) {
+    activeTab.value = 'my-bus';
+  } else if (transportStore.routes.length > 0) {
     await selectRoute(transportStore.routes[0]);
   }
 });

@@ -9,7 +9,14 @@ class StoreParentRequest extends BaseApiRequest
 {
     public function rules(): array
     {
-        $schoolId = app(TenantManager::class)->getTenantId();
+        $schoolId = app(TenantManager::class)->getTenantId() ?? $this->user()?->school_id;
+
+        $studentRules = ['nullable', 'integer'];
+        if ($schoolId) {
+            $studentRules[] = Rule::exists('students', 'id')->where('school_id', $schoolId);
+        } else {
+            $studentRules[] = Rule::exists('students', 'id');
+        }
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -24,11 +31,7 @@ class StoreParentRequest extends BaseApiRequest
             'occupation' => ['nullable', 'string', 'max:100'],
             'address' => ['nullable', 'string', 'max:500'],
             'emergency_contact' => ['nullable', 'string', 'max:100'],
-            'student_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('students', 'id')->where('school_id', $schoolId),
-            ],
+            'student_id' => $studentRules,
             'relationship' => ['nullable', 'string', Rule::in(['mother', 'father', 'guardian', 'other'])],
             'is_primary_contact' => ['nullable', 'boolean'],
         ];

@@ -299,13 +299,179 @@
       </div>
     </div>
 
-    <!-- TAB 3: TELEGRAM BOT INTEGRATION (ACCEPTANCE CRITERION 3) -->
-    <div v-if="activeTab === 'telegram'" class="max-w-2xl mx-auto space-y-6">
+    <!-- TAB 3: TELEGRAM BOT INTEGRATION (ACCEPTANCE CRITERION 3 & SCHOOL BOT CONFIGURATION) -->
+    <div v-if="activeTab === 'telegram'" class="max-w-3xl mx-auto space-y-6">
+      <!-- 1. School Admin Bot Configuration Card -->
+      <div v-if="authStore.isSchoolAdmin" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+        <div class="border-b border-slate-800 pb-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20">🤖</span>
+              <div>
+                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                  <span>School Telegram Bot Configuration</span>
+                  <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
+                    Admin
+                  </span>
+                </h2>
+                <p class="text-xs text-slate-400 mt-0.5">
+                  Configure your school's dedicated Telegram Bot token and username. Announcements and student updates will be delivered from this bot.
+                </p>
+              </div>
+            </div>
+            <span
+              class="text-xs px-2.5 py-1 rounded-full font-semibold border flex items-center gap-1.5 self-start sm:self-center shrink-0"
+              :class="commStore.schoolBotSettings?.has_telegram_bot 
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'"
+            >
+              <span class="w-2 h-2 rounded-full" :class="commStore.schoolBotSettings?.has_telegram_bot ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'"></span>
+              <span>{{ commStore.schoolBotSettings?.has_telegram_bot ? 'Bot Active & Configured' : 'Bot Key Required' }}</span>
+            </span>
+          </div>
+        </div>
+
+        <form @submit.prevent="saveSchoolBotSettings" class="space-y-4 text-xs">
+          <!-- Bot Username -->
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+              <span>Telegram Bot Username</span>
+              <span class="text-[11px] text-slate-500 font-normal">Created via @BotFather in Telegram</span>
+            </label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 select-none">@</span>
+              <input
+                v-model="schoolBotForm.telegram_bot_username"
+                type="text"
+                placeholder="e.g. GreenwoodHighBot"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
+              />
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">
+              Users connect via: <span class="text-indigo-400 font-mono">https://t.me/{{ schoolBotForm.telegram_bot_username || 'YourBotUsername' }}</span>
+            </p>
+          </div>
+
+          <!-- Bot Token -->
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+              <span>Telegram Bot API Token (Key)</span>
+              <button
+                type="button"
+                @click="showBotToken = !showBotToken"
+                class="text-indigo-400 hover:text-indigo-300 text-[11px] transition"
+              >
+                {{ showBotToken ? 'Hide Token' : 'Reveal Token' }}
+              </button>
+            </label>
+            <div class="relative">
+              <input
+                v-model="schoolBotForm.telegram_bot_token"
+                :type="showBotToken ? 'text' : 'password'"
+                placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
+              />
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">
+              Secret token issued by BotFather. Kept masked for security. Leave the masked characters (••••) to keep the existing token unchanged.
+            </p>
+          </div>
+
+          <!-- Webhook URL & Registration -->
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-slate-300">Generated Webhook URL</span>
+              <span class="text-[10px] text-slate-500">School Tenant #{{ commStore.schoolBotSettings?.school_id || 'Active' }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input
+                :value="commStore.schoolBotSettings?.webhook_url || 'https://domain.com/api/telegram/webhook/' + (commStore.schoolBotSettings?.school_id || '')"
+                readonly
+                class="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-[11px] font-mono text-slate-300 select-all focus:outline-none"
+              />
+              <button
+                type="button"
+                @click="copyWebhookUrl"
+                class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1 shrink-0"
+                title="Copy Webhook URL"
+              >
+                <span>📋</span>
+                <span>Copy</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-2 pt-1">
+              <label class="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-300 text-[11px]">
+                <input
+                  type="checkbox"
+                  v-model="schoolBotForm.register_webhook"
+                  class="rounded border-slate-700 text-indigo-600 focus:ring-0 bg-slate-900"
+                />
+                <span>Automatically register webhook with Telegram Bot API on save</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Test & Verification Feedback Area -->
+          <div v-if="commStore.botTestResult" class="p-3 rounded-xl text-xs" :class="commStore.botTestResult.success ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/20 text-rose-300'">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span>{{ commStore.botTestResult.success ? '✓' : '⚠️' }}</span>
+                <span v-if="commStore.botTestResult.success">
+                  Verified with Telegram Bot API! Bot: <strong>{{ commStore.botTestResult.data?.result?.first_name }}</strong> (@{{ commStore.botTestResult.data?.result?.username }})
+                </span>
+                <span v-else>
+                  {{ commStore.botTestResult.error }}
+                </span>
+              </div>
+              <button type="button" @click="commStore.botTestResult = null" class="text-slate-500 hover:text-slate-300 text-xs font-bold">✕</button>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                @click="testBotConnection"
+                :disabled="commStore.botTesting || commStore.actionLoading"
+                class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+              >
+                <span v-if="commStore.botTesting" class="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></span>
+                <span v-else>🔍</span>
+                <span>{{ commStore.botTesting ? 'Testing...' : 'Test Connection' }}</span>
+              </button>
+
+              <button
+                type="button"
+                @click="registerWebhookDirectly"
+                :disabled="!commStore.schoolBotSettings?.has_telegram_bot || commStore.actionLoading"
+                class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                title="Register Webhook with Telegram"
+              >
+                <span>🌐</span>
+                <span>Register Webhook</span>
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              :disabled="commStore.actionLoading"
+              class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-sm active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <span v-if="commStore.actionLoading" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              <span>💾</span>
+              <span>Save Bot Configuration</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 2. Personal Telegram Notification Linking Card -->
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
         <div class="border-b border-slate-800 pb-4">
           <div class="flex items-center justify-between">
             <h2 class="text-base font-bold text-white flex items-center gap-2">
-              <span>✈️ Telegram School Bot Delivery</span>
+              <span>✈️ Personal Telegram Notifications</span>
             </h2>
             <span
               class="text-xs px-2.5 py-0.5 rounded-full font-semibold border"
@@ -346,38 +512,83 @@
         <!-- Not Linked: Setup Flow -->
         <div v-else class="space-y-4 text-xs">
           <p class="text-slate-300">
-            To link your Telegram account to this school, generate a secure link code below and send it to the school's official bot.
+            Connect your Telegram to receive instant real-time alerts tailored to your role (such as child attendance notices, published report cards, bulletins, and timetables).
           </p>
 
-          <div v-if="commStore.telegramLinkData" class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
-            <div class="text-slate-400">Step 1: Open Telegram Bot</div>
-            <a
-              :href="commStore.telegramLinkData.deep_link"
-              target="_blank"
-              class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition"
-            >
-              <span>✈️</span>
-              <span>Open @{{ commStore.telegramLinkData.bot_username }} in Telegram</span>
-            </a>
+          <!-- Dual Connection Options -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <!-- Option 1: Direct Start with Email/Phone -->
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5 flex flex-col justify-between">
+              <div class="space-y-1.5">
+                <div class="flex items-center gap-1.5 text-sky-400 font-semibold text-xs">
+                  <span>📱</span>
+                  <span>Method 1: Direct in Telegram</span>
+                </div>
+                <p class="text-slate-400 text-[11px] leading-relaxed">
+                  Start the school bot in Telegram, then reply with your registered <b>Email</b> or <b>Phone Number</b>.
+                </p>
+              </div>
 
-            <div class="pt-2 text-slate-400">Step 2: Or send this command directly:</div>
+              <div class="pt-2">
+                <a
+                  v-if="commStore.telegramStatus?.bot_username || commStore.schoolBotSettings?.telegram_bot_username"
+                  :href="'https://t.me/' + (commStore.telegramStatus?.bot_username || commStore.schoolBotSettings?.telegram_bot_username)"
+                  target="_blank"
+                  class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition"
+                >
+                  <span>✈️</span>
+                  <span>Start @{{ commStore.telegramStatus?.bot_username || commStore.schoolBotSettings?.telegram_bot_username }}</span>
+                </a>
+                <div v-else class="text-[11px] text-slate-500 italic">
+                  Bot username will appear once configured by school admin.
+                </div>
+              </div>
+            </div>
+
+            <!-- Option 2: One-Click Link Code -->
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5 flex flex-col justify-between">
+              <div class="space-y-1.5">
+                <div class="flex items-center gap-1.5 text-indigo-400 font-semibold text-xs">
+                  <span>🔗</span>
+                  <span>Method 2: One-Click Link Code</span>
+                </div>
+                <p class="text-slate-400 text-[11px] leading-relaxed">
+                  Generate an instant 7-day secure connection code bound directly to your user session.
+                </p>
+              </div>
+
+              <div class="pt-2">
+                <button
+                  v-if="!commStore.telegramLinkData"
+                  @click="commStore.generateTelegramLink()"
+                  :disabled="commStore.actionLoading"
+                  class="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition flex items-center justify-center gap-1.5 text-xs"
+                >
+                  <span>Generate Link Code</span>
+                </button>
+                <a
+                  v-else
+                  :href="commStore.telegramLinkData.deep_link"
+                  target="_blank"
+                  class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition"
+                >
+                  <span>Connect via Code</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expanded Link Code Details if Generated -->
+          <div v-if="commStore.telegramLinkData" class="p-4 rounded-xl bg-slate-950 border border-indigo-500/20 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-400 font-medium text-[11px]">Manual Telegram Command:</span>
+              <span class="text-[10px] text-slate-500 italic">Expires {{ formatDate(commStore.telegramLinkData.expires_at) }}</span>
+            </div>
             <div class="p-2.5 bg-slate-900 rounded-lg font-mono text-emerald-400 text-xs border border-slate-800 select-all flex items-center justify-between">
               <span>/start {{ commStore.telegramLinkData.link_code }}</span>
               <span class="text-[10px] text-slate-500">Copy &amp; send</span>
             </div>
-            <p class="text-[10px] text-slate-500 italic">
-              Link code expires on {{ formatDate(commStore.telegramLinkData.expires_at) }}.
-            </p>
           </div>
-
-          <button
-            v-else
-            @click="commStore.generateTelegramLink()"
-            :disabled="commStore.actionLoading"
-            class="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold transition flex items-center justify-center gap-2"
-          >
-            <span>✈️ Generate Telegram Connection Link</span>
-          </button>
         </div>
       </div>
     </div>
@@ -973,7 +1184,10 @@ async function deleteAnnouncement(id) {
   modalStore.toast('Announcement deleted.', 'info');
 }
 
-function openNewThreadModal(studentId = null) {
+async function openNewThreadModal(studentId = null) {
+  if (authStore.isParent && students.value.length === 0) {
+    await loadMetadata();
+  }
   threadForm.value = {
     student_id: studentId || students.value[0]?.id || null,
     subject: '',
@@ -1011,9 +1225,68 @@ async function submitReply() {
   }
 }
 
+// School Dedicated Bot Settings (Admin)
+const schoolBotForm = ref({
+  telegram_bot_username: '',
+  telegram_bot_token: '',
+  register_webhook: true,
+});
+const showBotToken = ref(false);
+
+function syncSchoolBotForm() {
+  if (commStore.schoolBotSettings) {
+    schoolBotForm.value.telegram_bot_username = commStore.schoolBotSettings.telegram_bot_username || '';
+    schoolBotForm.value.telegram_bot_token = commStore.schoolBotSettings.telegram_bot_token || '';
+  }
+}
+
+async function saveSchoolBotSettings() {
+  try {
+    await commStore.updateSchoolBotSettings({
+      telegram_bot_username: schoolBotForm.value.telegram_bot_username,
+      telegram_bot_token: schoolBotForm.value.telegram_bot_token,
+      register_webhook: schoolBotForm.value.register_webhook,
+    });
+    syncSchoolBotForm();
+    modalStore.toast('School Telegram bot configuration saved!', 'success');
+  } catch (err) {
+    // Handled in store
+  }
+}
+
+async function testBotConnection() {
+  const tokenToTest = schoolBotForm.value.telegram_bot_token;
+  const res = await commStore.testSchoolBot(tokenToTest);
+  if (res && res.success) {
+    modalStore.toast(`Bot verified: @${res.data?.result?.username || 'Active'}`, 'success');
+  } else {
+    modalStore.toast(res?.error || 'Connection failed.', 'error');
+  }
+}
+
+async function registerWebhookDirectly() {
+  try {
+    await commStore.registerSchoolWebhook();
+    modalStore.toast('Telegram webhook registered successfully!', 'success');
+  } catch (err) {
+    // Handled in store
+  }
+}
+
+function copyWebhookUrl() {
+  if (commStore.schoolBotSettings?.webhook_url) {
+    navigator.clipboard?.writeText(commStore.schoolBotSettings.webhook_url);
+    modalStore.toast('Webhook URL copied to clipboard!', 'info');
+  }
+}
+
 async function openTelegramTab() {
   activeTab.value = 'telegram';
   await commStore.fetchTelegramStatus();
+  if (authStore.isSchoolAdmin) {
+    await commStore.fetchSchoolBotSettings();
+    syncSchoolBotForm();
+  }
 }
 
 async function unlinkTelegram() {
@@ -1064,27 +1337,46 @@ async function savePreferences() {
 }
 
 async function loadMetadata() {
-  try {
-    const [gRes, sRes, stuRes] = await Promise.all([
-      axios.get('/grade-levels'),
-      axios.get('/sections'),
-      axios.get('/students'),
-    ]);
-    gradeLevels.value = gRes.data.data || [];
-    sections.value = sRes.data.data || [];
-    students.value = stuRes.data.data || [];
-  } catch (e) {
-    // Silent
+  if (canPostAnnouncement.value) {
+    try {
+      const [gRes, sRes, stuRes] = await Promise.all([
+        axios.get('/grade-levels'),
+        axios.get('/sections'),
+        axios.get('/students'),
+      ]);
+      gradeLevels.value = gRes.data.data || [];
+      sections.value = sRes.data.data || [];
+      students.value = stuRes.data.data || [];
+    } catch (e) {
+      // Silent
+    }
+  } else if (authStore.isParent) {
+    try {
+      const res = await axios.get('/parent/children');
+      students.value = res.data.data || [];
+    } catch (e) {
+      // Silent
+    }
   }
 }
 
 onMounted(async () => {
-  await Promise.all([
+  const promises = [
     commStore.fetchAnnouncements(),
-    commStore.fetchThreads(),
     commStore.fetchTelegramStatus(),
     loadMetadata(),
-  ]);
+  ];
+
+  if (canMessage.value) {
+    promises.push(commStore.fetchThreads());
+  }
+
+  await Promise.all(promises);
+
+  if (authStore.isSchoolAdmin) {
+    await commStore.fetchSchoolBotSettings();
+    syncSchoolBotForm();
+  }
 
   if (route.query.tab) {
     const tab = String(route.query.tab);
@@ -1095,17 +1387,19 @@ onMounted(async () => {
     }
   }
 
-  if (route.query.student_id) {
-    const sId = parseInt(String(route.query.student_id), 10);
-    const existing = commStore.threads.find(t => t.student_id === sId);
-    activeTab.value = 'messages';
-    if (existing) {
-      await commStore.fetchThread(existing.id);
-    } else {
-      openNewThreadModal(sId);
+  if (canMessage.value) {
+    if (route.query.student_id) {
+      const sId = parseInt(String(route.query.student_id), 10);
+      const existing = commStore.threads.find(t => t.student_id === sId);
+      activeTab.value = 'messages';
+      if (existing) {
+        await commStore.fetchThread(existing.id);
+      } else {
+        openNewThreadModal(sId);
+      }
+    } else if (commStore.threads.length > 0 && !commStore.currentThread) {
+      await commStore.fetchThread(commStore.threads[0].id);
     }
-  } else if (commStore.threads.length > 0 && !commStore.currentThread) {
-    await commStore.fetchThread(commStore.threads[0].id);
   }
 });
 </script>

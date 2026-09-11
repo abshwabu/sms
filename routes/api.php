@@ -78,6 +78,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard')->middleware('tenant.user');
 
+    // Direct school bot management (Super Admin or School Admin for their own school)
+    Route::middleware('role:school_admin,super_admin')->group(function () {
+        Route::put('/schools/{school}/telegram', [SchoolController::class, 'updateTelegram'])->name('api.schools.telegram.update');
+        Route::post('/schools/{school}/telegram/test', [SchoolController::class, 'testTelegram'])->name('api.schools.telegram.test');
+    });
+
     // Tenant-Scoped Routes: requires active tenant AND verifies user belongs to this tenant
     Route::middleware(['tenant.require', 'tenant.user'])->group(function () {
         Route::apiResource('courses', CourseController::class);
@@ -247,6 +253,10 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/stats', [SchoolAdminController::class, 'stats'])->name('api.admin.stats');
                 Route::post('/invitations', [InvitationController::class, 'invite'])->name('api.admin.invitations');
                 Route::post('/claim-codes', [ClaimCodeController::class, 'generate'])->name('api.admin.claim-codes');
+                Route::get('/school/telegram', [SchoolAdminController::class, 'getTelegramSettings'])->name('api.admin.school.telegram.get');
+                Route::put('/school/telegram', [SchoolAdminController::class, 'updateTelegramSettings'])->name('api.admin.school.telegram.update');
+                Route::post('/school/telegram/test', [SchoolAdminController::class, 'testTelegramSettings'])->name('api.admin.school.telegram.test');
+                Route::post('/school/telegram/register-webhook', [SchoolAdminController::class, 'registerTelegramWebhook'])->name('api.admin.school.telegram.register-webhook');
             });
 
             // Academic Structure Management (Write)

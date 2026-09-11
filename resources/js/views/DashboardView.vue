@@ -28,7 +28,7 @@
                 {{ roleLabel }}
               </span>
               <span v-if="dashboardStore.data?.school" class="text-xs text-slate-300">
-                &bull; {{ dashboardStore.data.school.name }}
+                &bull; {{ dashboardStore.data?.school?.name }}
               </span>
               <span v-if="authStore.isSuperAdmin && dashboardStore.activeRoleView" class="text-xs text-purple-400 font-medium bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
                 (Super-Admin Diagnostic View)
@@ -240,6 +240,7 @@
         <p class="text-sm">Loading role-tailored dashboard metrics...</p>
       </div>
 
+      <template v-else-if="dashboardStore.data">
       <!-- ================================================================= -->
       <!-- 2.1 SUPER-ADMIN DASHBOARD                                         -->
       <!-- ================================================================= -->
@@ -249,17 +250,17 @@
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
           <div class="text-xs text-slate-400 font-medium">Total Tenant Schools</div>
           <div class="text-2xl sm:text-3xl font-black text-white mt-1">
-            {{ dashboardStore.data.summary_metrics?.total_schools || 0 }}
+            {{ dashboardStore.data?.summary_metrics?.total_schools || 0 }}
           </div>
           <span class="text-[11px] text-emerald-400 font-mono mt-1 inline-block">
-            {{ dashboardStore.data.summary_metrics?.active_schools || 0 }} Active subscriptions
+            {{ dashboardStore.data?.summary_metrics?.active_schools || 0 }} Active subscriptions
           </span>
         </div>
 
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
           <div class="text-xs text-slate-400 font-medium">Platform Students</div>
           <div class="text-2xl sm:text-3xl font-black text-white mt-1 font-mono">
-            {{ dashboardStore.data.summary_metrics?.total_students || 0 }}
+            {{ dashboardStore.data?.summary_metrics?.total_students || 0 }}
           </div>
           <span class="text-[11px] text-slate-500 mt-1 inline-block">Across all schools</span>
         </div>
@@ -267,7 +268,7 @@
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
           <div class="text-xs text-slate-400 font-medium">Total Staff &amp; Teachers</div>
           <div class="text-2xl sm:text-3xl font-black text-white mt-1 font-mono">
-            {{ dashboardStore.data.summary_metrics?.total_staff || 0 }}
+            {{ dashboardStore.data?.summary_metrics?.total_staff || 0 }}
           </div>
           <span class="text-[11px] text-slate-500 mt-1 inline-block">Educators &amp; Admins</span>
         </div>
@@ -275,7 +276,7 @@
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
           <div class="text-xs text-slate-400 font-medium">Active Sections</div>
           <div class="text-2xl sm:text-3xl font-black text-white mt-1 font-mono">
-            {{ dashboardStore.data.summary_metrics?.total_sections || 0 }}
+            {{ dashboardStore.data?.summary_metrics?.total_sections || 0 }}
           </div>
           <span class="text-[11px] text-indigo-400 mt-1 inline-block">Homeroom classes</span>
         </div>
@@ -287,7 +288,7 @@
           <h3 class="text-sm font-bold text-white flex items-center gap-2">
             <span>Registered School Tenants</span>
             <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
-              {{ dashboardStore.data.schools?.length || 0 }}
+              {{ dashboardStore.data?.schools?.length || 0 }}
             </span>
           </h3>
           <router-link to="/schools" class="text-xs text-indigo-400 hover:text-indigo-300 transition">
@@ -310,7 +311,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-800/60 text-slate-300">
-              <tr v-for="s in dashboardStore.data.schools" :key="s.id" class="hover:bg-slate-800/30 transition">
+              <tr v-for="s in dashboardStore.data?.schools || []" :key="s.id" class="hover:bg-slate-800/30 transition">
                 <td class="py-3 px-3 font-semibold text-white">
                   {{ s.name }}
                 </td>
@@ -370,7 +371,7 @@
             </div>
             <div class="flex items-center justify-between text-slate-300">
               <span>Cache &amp; Queue:</span>
-              <span class="text-slate-400 font-mono">{{ dashboardStore.data.system_health?.cache_driver }} / {{ dashboardStore.data.system_health?.queue_connection }}</span>
+              <span class="text-slate-400 font-mono">{{ dashboardStore.data?.system_health?.cache_driver }} / {{ dashboardStore.data?.system_health?.queue_connection }}</span>
             </div>
           </div>
         </div>
@@ -386,17 +387,17 @@
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
           <div class="text-xs text-slate-400 font-medium">Active Enrolled Students</div>
           <div class="text-2xl sm:text-3xl font-black text-white mt-1 font-mono">
-            {{ dashboardStore.data.enrollment_stats?.total_students || 0 }}
+            {{ dashboardStore.data?.enrollment_stats?.total_students || 0 }}
           </div>
           <span class="text-[11px] text-emerald-400 font-mono mt-1 inline-block">
-            Capacity: {{ dashboardStore.data.enrollment_stats?.capacity_utilized_percent || 0 }}% utilized
+            Capacity: {{ dashboardStore.data?.enrollment_stats?.capacity_utilized_percent || 0 }}% utilized
           </span>
         </div>
 
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
           <div class="text-xs text-slate-400 font-medium">Active Teaching &amp; Staff</div>
           <div class="text-2xl sm:text-3xl font-black text-white mt-1 font-mono">
-            {{ dashboardStore.data.enrollment_stats?.total_staff || 0 }}
+            {{ dashboardStore.data?.enrollment_stats?.total_staff || 0 }}
           </div>
           <span class="text-[11px] text-slate-500 mt-1 inline-block">Assigned educators</span>
         </div>
@@ -404,18 +405,18 @@
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
           <div class="text-xs text-slate-400 font-medium">Total Class Sections</div>
           <div class="text-2xl sm:text-3xl font-black text-white mt-1 font-mono">
-            {{ dashboardStore.data.enrollment_stats?.total_sections || 0 }}
+            {{ dashboardStore.data?.enrollment_stats?.total_sections || 0 }}
           </div>
-          <span class="text-[11px] text-indigo-400 mt-1 inline-block">Total capacity: {{ dashboardStore.data.enrollment_stats?.total_capacity || 0 }}</span>
+          <span class="text-[11px] text-indigo-400 mt-1 inline-block">Total capacity: {{ dashboardStore.data?.enrollment_stats?.total_capacity || 0 }}</span>
         </div>
 
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
           <div class="text-xs text-slate-400 font-medium">Today's Attendance Rate</div>
           <div class="text-2xl sm:text-3xl font-black text-white mt-1 font-mono">
-            {{ dashboardStore.data.attendance_trends?.today_rate || 0 }}%
+            {{ dashboardStore.data?.attendance_trends?.today_rate || 0 }}%
           </div>
           <span class="text-[11px] text-slate-400 mt-1 inline-block">
-            {{ dashboardStore.data.attendance_trends?.sections_marked_count || 0 }} of {{ dashboardStore.data.attendance_trends?.sections_total_count || 0 }} sections marked
+            {{ dashboardStore.data?.attendance_trends?.sections_marked_count || 0 }} of {{ dashboardStore.data?.attendance_trends?.sections_total_count || 0 }} sections marked
           </span>
         </div>
       </div>
@@ -429,7 +430,7 @@
           <div>
             <div class="text-[11px] text-slate-400">Unassigned Students</div>
             <div class="text-lg font-bold text-white mt-0.5">
-              {{ dashboardStore.data.pending_actions?.unassigned_students_count || 0 }}
+              {{ dashboardStore.data?.pending_actions?.unassigned_students_count || 0 }}
             </div>
           </div>
           <span class="text-xs text-indigo-400 font-medium">Review &rarr;</span>
@@ -441,8 +442,8 @@
         >
           <div>
             <div class="text-[11px] text-slate-400">Overdue Library Loans</div>
-            <div class="text-lg font-bold text-white mt-0.5" :class="dashboardStore.data.pending_actions?.overdue_loans_count > 0 ? 'text-amber-400' : 'text-white'">
-              {{ dashboardStore.data.pending_actions?.overdue_loans_count || 0 }}
+            <div class="text-lg font-bold text-white mt-0.5" :class="(dashboardStore.data?.pending_actions?.overdue_loans_count || 0) > 0 ? 'text-amber-400' : 'text-white'">
+              {{ dashboardStore.data?.pending_actions?.overdue_loans_count || 0 }}
             </div>
           </div>
           <span class="text-xs text-amber-400 font-medium">Inspect &rarr;</span>
@@ -455,7 +456,7 @@
           <div>
             <div class="text-[11px] text-slate-400">Pending Invitations</div>
             <div class="text-lg font-bold text-white mt-0.5">
-              {{ dashboardStore.data.pending_actions?.pending_invitations_count || 0 }}
+              {{ dashboardStore.data?.pending_actions?.pending_invitations_count || 0 }}
             </div>
           </div>
           <span class="text-xs text-slate-400 font-medium">Invites &rarr;</span>
@@ -468,7 +469,7 @@
           <div>
             <div class="text-[11px] text-slate-400">Draft Announcements</div>
             <div class="text-lg font-bold text-white mt-0.5">
-              {{ dashboardStore.data.pending_actions?.draft_announcements_count || 0 }}
+              {{ dashboardStore.data?.pending_actions?.draft_announcements_count || 0 }}
             </div>
           </div>
           <span class="text-xs text-indigo-400 font-medium">Publish &rarr;</span>
@@ -482,7 +483,7 @@
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-sm font-bold text-white flex items-center gap-2">
               <span>Daily Attendance Overview</span>
-              <span class="text-xs text-slate-500 font-mono">{{ dashboardStore.data.attendance_trends?.today }}</span>
+              <span class="text-xs text-slate-500 font-mono">{{ dashboardStore.data?.attendance_trends?.today }}</span>
             </h3>
             <router-link to="/attendance" class="text-xs text-emerald-400 hover:underline">
               Full Attendance &rarr;
@@ -491,19 +492,19 @@
 
           <div class="grid grid-cols-4 gap-2 text-center mb-4">
             <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
-              <div class="text-lg font-bold text-emerald-400">{{ dashboardStore.data.attendance_trends?.breakdown?.present || 0 }}</div>
+              <div class="text-lg font-bold text-emerald-400">{{ dashboardStore.data?.attendance_trends?.breakdown?.present || 0 }}</div>
               <div class="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Present</div>
             </div>
             <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
-              <div class="text-lg font-bold text-amber-400">{{ dashboardStore.data.attendance_trends?.breakdown?.late || 0 }}</div>
+              <div class="text-lg font-bold text-amber-400">{{ dashboardStore.data?.attendance_trends?.breakdown?.late || 0 }}</div>
               <div class="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Late</div>
             </div>
             <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
-              <div class="text-lg font-bold text-rose-400">{{ dashboardStore.data.attendance_trends?.breakdown?.absent || 0 }}</div>
+              <div class="text-lg font-bold text-rose-400">{{ dashboardStore.data?.attendance_trends?.breakdown?.absent || 0 }}</div>
               <div class="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Absent</div>
             </div>
             <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
-              <div class="text-lg font-bold text-slate-300">{{ dashboardStore.data.attendance_trends?.breakdown?.excused || 0 }}</div>
+              <div class="text-lg font-bold text-slate-300">{{ dashboardStore.data?.attendance_trends?.breakdown?.excused || 0 }}</div>
               <div class="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Excused</div>
             </div>
           </div>
@@ -513,13 +514,13 @@
             <div class="flex items-center justify-between text-xs mb-1">
               <span class="text-slate-400">Section Attendance Completion</span>
               <span class="text-slate-200 font-mono font-semibold">
-                {{ dashboardStore.data.attendance_trends?.sections_marked_count || 0 }} / {{ dashboardStore.data.attendance_trends?.sections_total_count || 0 }} Sections
+                {{ dashboardStore.data?.attendance_trends?.sections_marked_count || 0 }} / {{ dashboardStore.data?.attendance_trends?.sections_total_count || 0 }} Sections
               </span>
             </div>
             <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
               <div
                 class="bg-emerald-500 h-2 rounded-full transition-all"
-                :style="{ width: `${dashboardStore.data.attendance_trends?.sections_total_count > 0 ? (dashboardStore.data.attendance_trends?.sections_marked_count / dashboardStore.data.attendance_trends?.sections_total_count) * 100 : 0}%` }"
+                :style="{ width: `${(dashboardStore.data?.attendance_trends?.sections_total_count || 0) > 0 ? ((dashboardStore.data?.attendance_trends?.sections_marked_count || 0) / (dashboardStore.data?.attendance_trends?.sections_total_count || 1)) * 100 : 0}%` }"
               ></div>
             </div>
           </div>
@@ -536,7 +537,7 @@
 
           <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
             <div
-              v-for="gl in dashboardStore.data.enrollment_stats?.grade_breakdown"
+              v-for="gl in dashboardStore.data?.enrollment_stats?.grade_breakdown || []"
               :key="gl.id"
               class="p-2.5 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between"
             >
@@ -568,9 +569,9 @@
           </router-link>
         </div>
 
-        <div v-if="dashboardStore.data.recent_announcements?.length" class="divide-y divide-slate-800/60">
+        <div v-if="dashboardStore.data?.recent_announcements?.length" class="divide-y divide-slate-800/60">
           <div
-            v-for="a in dashboardStore.data.recent_announcements"
+            v-for="a in dashboardStore.data?.recent_announcements || []"
             :key="a.id"
             class="py-3 flex items-start justify-between gap-4"
           >
@@ -617,9 +618,9 @@
           </router-link>
         </div>
 
-        <div v-if="dashboardStore.data.attendance_sections?.length" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div v-if="dashboardStore.data?.attendance_sections?.length" class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div
-            v-for="sec in dashboardStore.data.attendance_sections"
+            v-for="sec in dashboardStore.data?.attendance_sections || []"
             :key="sec.section_id"
             class="p-4 rounded-xl border flex items-center justify-between"
             :class="sec.is_marked_today ? 'bg-slate-950/70 border-slate-800' : 'bg-amber-950/20 border-amber-500/40'"
@@ -664,7 +665,7 @@
             <h3 class="text-sm font-bold text-white flex items-center gap-2">
               <span>Today's Teaching Schedule</span>
               <span class="text-xs font-mono capitalize text-indigo-400">
-                ({{ dashboardStore.data.today_timetable?.day_of_week }})
+                ({{ dashboardStore.data?.today_timetable?.day_of_week }})
               </span>
             </h3>
             <router-link to="/timetable" class="text-xs text-indigo-400 hover:underline">
@@ -672,9 +673,9 @@
             </router-link>
           </div>
 
-          <div v-if="dashboardStore.data.today_timetable?.slots?.length" class="space-y-2">
+          <div v-if="dashboardStore.data?.today_timetable?.slots?.length" class="space-y-2">
             <div
-              v-for="slot in dashboardStore.data.today_timetable.slots"
+              v-for="slot in dashboardStore.data?.today_timetable?.slots || []"
               :key="slot.id"
               class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between"
             >
@@ -708,9 +709,9 @@
             </router-link>
           </div>
 
-          <div v-if="dashboardStore.data.pending_grade_entry?.length" class="space-y-2.5">
+          <div v-if="dashboardStore.data?.pending_grade_entry?.length" class="space-y-2.5">
             <div
-              v-for="item in dashboardStore.data.pending_grade_entry"
+              v-for="item in dashboardStore.data?.pending_grade_entry || []"
               :key="`${item.exam_id}-${item.section_id}-${item.subject_id}`"
               class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between"
             >
@@ -749,9 +750,9 @@
           </router-link>
         </div>
 
-        <div v-if="dashboardStore.data.recent_messages?.length" class="divide-y divide-slate-800/60">
+        <div v-if="dashboardStore.data?.recent_messages?.length" class="divide-y divide-slate-800/60">
           <div
-            v-for="t in dashboardStore.data.recent_messages"
+            v-for="t in dashboardStore.data?.recent_messages || []"
             :key="t.id"
             class="py-3 flex items-start justify-between gap-4"
           >
@@ -788,26 +789,26 @@
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span class="text-xs text-slate-400 font-mono">Admission #: {{ dashboardStore.data.student_profile?.admission_number }}</span>
-            <h2 class="text-xl font-bold text-white mt-0.5">{{ dashboardStore.data.student_profile?.name }}</h2>
+            <span class="text-xs text-slate-400 font-mono">Admission #: {{ dashboardStore.data?.student_profile?.admission_number }}</span>
+            <h2 class="text-xl font-bold text-white mt-0.5">{{ dashboardStore.data?.student_profile?.name }}</h2>
             <div class="flex items-center gap-2 mt-1 text-xs text-slate-300">
               <span class="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 font-semibold border border-sky-500/20">
-                {{ dashboardStore.data.student_profile?.grade_level }} &bull; {{ dashboardStore.data.student_profile?.section_name }}
+                {{ dashboardStore.data?.student_profile?.grade_level }} &bull; {{ dashboardStore.data?.student_profile?.section_name }}
               </span>
-              <span>Homeroom: <strong class="text-white">{{ dashboardStore.data.student_profile?.homeroom_teacher }}</strong></span>
+              <span>Homeroom: <strong class="text-white">{{ dashboardStore.data?.student_profile?.homeroom_teacher }}</strong></span>
             </div>
           </div>
 
           <div class="flex items-center gap-3">
             <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center min-w-[100px]">
               <div class="text-xl font-bold font-mono text-emerald-400">
-                {{ dashboardStore.data.attendance_summary?.rate_percent || 0 }}%
+                {{ dashboardStore.data?.attendance_summary?.rate_percent || 0 }}%
               </div>
               <div class="text-[10px] text-slate-400 uppercase tracking-wider">Attendance</div>
             </div>
             <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center min-w-[100px]">
               <div class="text-xl font-bold font-mono uppercase" :class="studentTodayStatusClasses">
-                {{ dashboardStore.data.attendance_summary?.today_status || 'Pending' }}
+                {{ dashboardStore.data?.attendance_summary?.today_status || 'Pending' }}
               </div>
               <div class="text-[10px] text-slate-400 uppercase tracking-wider">Today</div>
             </div>
@@ -822,14 +823,14 @@
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-sm font-bold text-white flex items-center gap-2">
               <span>Today's Class Schedule</span>
-              <span class="text-xs font-mono text-sky-400 capitalize">({{ dashboardStore.data.today_timetable?.day_of_week }})</span>
+              <span class="text-xs font-mono text-sky-400 capitalize">({{ dashboardStore.data?.today_timetable?.day_of_week }})</span>
             </h3>
             <router-link to="/timetable" class="text-xs text-sky-400 hover:underline">Full Schedule &rarr;</router-link>
           </div>
 
-          <div v-if="dashboardStore.data.today_timetable?.slots?.length" class="space-y-2">
+          <div v-if="dashboardStore.data?.today_timetable?.slots?.length" class="space-y-2">
             <div
-              v-for="slot in dashboardStore.data.today_timetable.slots"
+              v-for="slot in dashboardStore.data?.today_timetable?.slots || []"
               :key="slot.id"
               class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between"
             >
@@ -861,9 +862,9 @@
             <router-link to="/grading" class="text-xs text-emerald-400 hover:underline">All Grades &rarr;</router-link>
           </div>
 
-          <div v-if="dashboardStore.data.recent_grades?.length" class="space-y-2">
+          <div v-if="dashboardStore.data?.recent_grades?.length" class="space-y-2">
             <div
-              v-for="g in dashboardStore.data.recent_grades"
+              v-for="g in dashboardStore.data?.recent_grades || []"
               :key="g.id"
               class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between"
             >
@@ -891,15 +892,15 @@
             <h3 class="text-sm font-bold text-white flex items-center gap-2">
               <span>Borrowed Library Books</span>
               <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
-                {{ dashboardStore.data.library_loans?.length || 0 }}
+                {{ dashboardStore.data?.library_loans?.length || 0 }}
               </span>
             </h3>
             <router-link to="/library" class="text-xs text-indigo-400 hover:underline">Library &rarr;</router-link>
           </div>
 
-          <div v-if="dashboardStore.data.library_loans?.length" class="space-y-2">
+          <div v-if="dashboardStore.data?.library_loans?.length" class="space-y-2">
             <div
-              v-for="loan in dashboardStore.data.library_loans"
+              v-for="loan in dashboardStore.data?.library_loans || []"
               :key="loan.id"
               class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between"
             >
@@ -925,9 +926,9 @@
             <router-link to="/communications" class="text-xs text-indigo-400 hover:underline">All Notices &rarr;</router-link>
           </div>
 
-          <div v-if="dashboardStore.data.announcements?.length" class="space-y-2.5">
+          <div v-if="dashboardStore.data?.announcements?.length" class="space-y-2.5">
             <div
-              v-for="a in dashboardStore.data.announcements"
+              v-for="a in dashboardStore.data?.announcements || []"
               :key="a.id"
               class="p-3 bg-slate-950 rounded-xl border border-slate-800/80"
             >
@@ -957,7 +958,7 @@
           <div class="flex items-center gap-2">
             <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Linked Children</span>
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
-              {{ dashboardStore.data.children?.length || 0 }} Enrolled
+              {{ dashboardStore.data?.children?.length || 0 }} Enrolled
             </span>
           </div>
           <span class="text-xs text-slate-500 hidden sm:inline">
@@ -968,17 +969,17 @@
         <!-- Switcher Tabs -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <button
-            v-for="c in dashboardStore.data.children"
+            v-for="c in dashboardStore.data?.children || []"
             :key="c.id"
             @click="dashboardStore.selectChild(c.id)"
             class="flex items-center gap-3 p-3 rounded-xl border text-left transition relative"
-            :class="dashboardStore.data.active_child_id === c.id
+            :class="dashboardStore.data?.active_child_id === c.id
               ? 'bg-amber-950/30 border-amber-500/60 ring-1 ring-amber-500/30'
               : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'"
           >
             <div
               class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white flex-shrink-0"
-              :class="dashboardStore.data.active_child_id === c.id ? 'bg-amber-600' : 'bg-slate-800'"
+              :class="dashboardStore.data?.active_child_id === c.id ? 'bg-amber-600' : 'bg-slate-800'"
             >
               {{ getInitials(c.name) }}
             </div>
@@ -995,23 +996,23 @@
       </div>
 
       <!-- Selected Child Dashboard Section -->
-      <div v-if="dashboardStore.data.child_dashboard" class="space-y-6">
+      <div v-if="dashboardStore.data?.child_dashboard" class="space-y-6">
         <!-- Quick Metrics Row -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
             <div class="text-xs text-slate-400 font-medium">Child Attendance Rate</div>
             <div class="text-2xl sm:text-3xl font-black text-white mt-1 font-mono">
-              {{ dashboardStore.data.child_dashboard.attendance?.rate_percent || 0 }}%
+              {{ dashboardStore.data?.child_dashboard?.attendance?.rate_percent || 0 }}%
             </div>
             <span class="text-[11px] text-emerald-400 mt-1 inline-block">
-              {{ dashboardStore.data.child_dashboard.attendance?.present_days || 0 }} days attended
+              {{ dashboardStore.data?.child_dashboard?.attendance?.present_days || 0 }} days attended
             </span>
           </div>
 
           <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
             <div class="text-xs text-slate-400 font-medium">Today's Attendance Status</div>
             <div class="text-2xl sm:text-3xl font-black font-mono uppercase mt-1" :class="parentTodayStatusClasses">
-              {{ dashboardStore.data.child_dashboard.attendance?.today_status || 'Pending' }}
+              {{ dashboardStore.data?.child_dashboard?.attendance?.today_status || 'Pending' }}
             </div>
             <span class="text-[11px] text-slate-500 mt-1 inline-block">Daily homeroom log</span>
           </div>
@@ -1019,20 +1020,20 @@
           <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
             <div class="text-xs text-slate-400 font-medium">Class Section &amp; Homeroom</div>
             <div class="text-base font-bold text-white mt-1 truncate">
-              {{ dashboardStore.data.child_dashboard.student?.section_name }}
+              {{ dashboardStore.data?.child_dashboard?.student?.section_name }}
             </div>
             <span class="text-[11px] text-slate-400 mt-1 inline-block truncate">
-              Teacher: {{ dashboardStore.data.child_dashboard.student?.homeroom_teacher }}
+              Teacher: {{ dashboardStore.data?.child_dashboard?.student?.homeroom_teacher }}
             </span>
           </div>
 
           <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-sm">
             <div class="text-xs text-slate-400 font-medium">School Bus Transport</div>
             <div class="text-base font-bold text-white mt-1 truncate">
-              {{ dashboardStore.data.child_dashboard.transport?.has_transport ? dashboardStore.data.child_dashboard.transport.route_name : 'No Bus Assigned' }}
+              {{ dashboardStore.data?.child_dashboard?.transport?.has_transport ? dashboardStore.data?.child_dashboard?.transport?.route_name : 'No Bus Assigned' }}
             </div>
             <span class="text-[11px] text-amber-400 mt-1 inline-block truncate">
-              {{ dashboardStore.data.child_dashboard.transport?.has_transport ? `Stop: ${dashboardStore.data.child_dashboard.transport.stop_name}` : 'Self transport' }}
+              {{ dashboardStore.data?.child_dashboard?.transport?.has_transport ? `Stop: ${dashboardStore.data?.child_dashboard?.transport?.stop_name}` : 'Self transport' }}
             </span>
           </div>
         </div>
@@ -1045,15 +1046,15 @@
               <h3 class="text-sm font-bold text-white flex items-center gap-2">
                 <span>Today's Class Schedule</span>
                 <span class="text-xs font-mono text-amber-400 capitalize">
-                  ({{ dashboardStore.data.child_dashboard.today_timetable?.day_of_week }})
+                  ({{ dashboardStore.data?.child_dashboard?.today_timetable?.day_of_week }})
                 </span>
               </h3>
               <router-link to="/timetable" class="text-xs text-amber-400 hover:underline">Timetable &rarr;</router-link>
             </div>
 
-            <div v-if="dashboardStore.data.child_dashboard.today_timetable?.slots?.length" class="space-y-2">
+            <div v-if="dashboardStore.data?.child_dashboard?.today_timetable?.slots?.length" class="space-y-2">
               <div
-                v-for="slot in dashboardStore.data.child_dashboard.today_timetable.slots"
+                v-for="slot in dashboardStore.data?.child_dashboard?.today_timetable?.slots || []"
                 :key="slot.id"
                 class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between"
               >
@@ -1085,9 +1086,9 @@
               <router-link to="/grading" class="text-xs text-emerald-400 hover:underline">Report Cards &rarr;</router-link>
             </div>
 
-            <div v-if="dashboardStore.data.child_dashboard.recent_grades?.length" class="space-y-2">
+            <div v-if="dashboardStore.data?.child_dashboard?.recent_grades?.length" class="space-y-2">
               <div
-                v-for="g in dashboardStore.data.child_dashboard.recent_grades"
+                v-for="g in dashboardStore.data?.child_dashboard?.recent_grades || []"
                 :key="g.id"
                 class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between"
               >
@@ -1121,26 +1122,26 @@
               <router-link to="/transport" class="text-xs text-amber-400 hover:underline">All Routes &rarr;</router-link>
             </div>
 
-            <div v-if="dashboardStore.data.child_dashboard.transport?.has_transport" class="space-y-3">
+            <div v-if="dashboardStore.data?.child_dashboard?.transport?.has_transport" class="space-y-3">
               <div class="p-3.5 bg-slate-950 rounded-xl border border-slate-800/80">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-white">{{ dashboardStore.data.child_dashboard.transport.route_name }}</span>
-                  <span class="text-[11px] text-slate-400 font-mono">{{ dashboardStore.data.child_dashboard.transport.vehicle_info }}</span>
+                  <span class="text-xs font-bold text-white">{{ dashboardStore.data?.child_dashboard?.transport?.route_name }}</span>
+                  <span class="text-[11px] text-slate-400 font-mono">{{ dashboardStore.data?.child_dashboard?.transport?.vehicle_info }}</span>
                 </div>
                 <div class="mt-2 text-xs text-slate-300">
-                  <span>Driver: <strong class="text-white">{{ dashboardStore.data.child_dashboard.transport.driver_name }}</strong></span>
-                  <span class="ml-2 text-slate-400">({{ dashboardStore.data.child_dashboard.transport.driver_phone }})</span>
+                  <span>Driver: <strong class="text-white">{{ dashboardStore.data?.child_dashboard?.transport?.driver_name }}</strong></span>
+                  <span class="ml-2 text-slate-400">({{ dashboardStore.data?.child_dashboard?.transport?.driver_phone }})</span>
                 </div>
               </div>
 
               <div class="p-3.5 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs">
                 <div>
                   <span class="text-slate-400">Assigned Bus Stop:</span>
-                  <div class="font-semibold text-white mt-0.5">{{ dashboardStore.data.child_dashboard.transport.stop_name }}</div>
+                  <div class="font-semibold text-white mt-0.5">{{ dashboardStore.data?.child_dashboard?.transport?.stop_name }}</div>
                 </div>
                 <div class="text-right font-mono text-slate-300">
-                  <div>Pickup: <strong class="text-emerald-400">{{ dashboardStore.data.child_dashboard.transport.pickup_time?.slice(0, 5) }}</strong></div>
-                  <div>Dropoff: <strong class="text-amber-400">{{ dashboardStore.data.child_dashboard.transport.dropoff_time?.slice(0, 5) }}</strong></div>
+                  <div>Pickup: <strong class="text-emerald-400">{{ dashboardStore.data?.child_dashboard?.transport?.pickup_time?.slice(0, 5) }}</strong></div>
+                  <div>Dropoff: <strong class="text-amber-400">{{ dashboardStore.data?.child_dashboard?.transport?.dropoff_time?.slice(0, 5) }}</strong></div>
                 </div>
               </div>
             </div>
@@ -1154,16 +1155,16 @@
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-sm font-bold text-white">Direct Teacher Chat</h3>
               <router-link
-                :to="`/communications?tab=messages&student_id=${dashboardStore.data.child_dashboard.student?.id}`"
+                :to="`/communications?tab=messages&student_id=${dashboardStore.data?.child_dashboard?.student?.id}`"
                 class="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition"
               >
                 💬 New Message
               </router-link>
             </div>
 
-            <div v-if="dashboardStore.data.child_dashboard.direct_messages?.length" class="space-y-2">
+            <div v-if="dashboardStore.data?.child_dashboard?.direct_messages?.length" class="space-y-2">
               <div
-                v-for="msg in dashboardStore.data.child_dashboard.direct_messages"
+                v-for="msg in dashboardStore.data?.child_dashboard?.direct_messages || []"
                 :key="msg.id"
                 class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-start justify-between gap-3"
               >
@@ -1182,6 +1183,19 @@
           </div>
         </div>
       </div>
+    </div>
+    </template>
+
+    <!-- Empty / Fallback State -->
+    <div v-else class="py-16 text-center text-slate-500 bg-slate-900/50 border border-slate-800 rounded-2xl">
+      <div class="text-3xl mb-3">📊</div>
+      <p class="text-sm text-slate-400">No dashboard metrics available.</p>
+      <button
+        @click="dashboardStore.fetchDashboard(currentActiveRole)"
+        class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition"
+      >
+        Reload Dashboard
+      </button>
     </div>
     </div>
   </div>

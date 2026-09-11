@@ -74,8 +74,8 @@ return new class extends Migration
             $table->string('telegram_chat_id')->nullable();
             $table->string('telegram_username')->nullable();
             $table->string('first_name')->nullable();
-            $table->string('link_code')->unique();
-            $table->timestamp('link_code_expires_at');
+            $table->string('link_code')->nullable()->unique();
+            $table->timestamp('link_code_expires_at')->nullable();
             $table->boolean('is_linked')->default(false);
             $table->timestamp('linked_at')->nullable();
             $table->boolean('notifications_enabled')->default(true);

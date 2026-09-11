@@ -11,6 +11,9 @@ export const useCommunicationsStore = defineStore('communications', {
         unreadCount: 0,
         telegramStatus: null,
         telegramLinkData: null,
+        schoolBotSettings: null,
+        botTestResult: null,
+        botTesting: false,
         preferences: null,
         loadingPreferences: false,
         loading: false,
@@ -23,6 +26,7 @@ export const useCommunicationsStore = defineStore('communications', {
         clearMessages() {
             this.error = null;
             this.successMessage = null;
+            this.botTestResult = null;
         },
 
         // --- Announcements ---
@@ -224,6 +228,68 @@ export const useCommunicationsStore = defineStore('communications', {
                 await this.fetchTelegramStatus();
             } catch (err) {
                 this.error = err.response?.data?.error?.message || 'Failed to unlink Telegram.';
+                throw err;
+            } finally {
+                this.actionLoading = false;
+            }
+        },
+
+        // --- School Dedicated Telegram Bot Settings (Admin) ---
+        async fetchSchoolBotSettings() {
+            try {
+                const res = await axios.get('/admin/school/telegram');
+                this.schoolBotSettings = res.data.data;
+                return this.schoolBotSettings;
+            } catch (err) {
+                this.schoolBotSettings = null;
+                return null;
+            }
+        },
+
+        async updateSchoolBotSettings(payload) {
+            this.actionLoading = true;
+            this.clearMessages();
+            try {
+                const res = await axios.put('/admin/school/telegram', payload);
+                this.schoolBotSettings = res.data.data;
+                this.successMessage = res.data.message || 'School Telegram bot settings saved successfully!';
+                return res.data.data;
+            } catch (err) {
+                this.error = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to save Telegram bot settings.';
+                throw err;
+            } finally {
+                this.actionLoading = false;
+            }
+        },
+
+        async testSchoolBot(token = null) {
+            this.botTesting = true;
+            this.botTestResult = null;
+            try {
+                const res = await axios.post('/admin/school/telegram/test', { token });
+                this.botTestResult = { success: true, data: res.data.data };
+                return this.botTestResult;
+            } catch (err) {
+                this.botTestResult = {
+                    success: false,
+                    error: err.response?.data?.error?.message || err.response?.data?.message || 'Telegram connection test failed.'
+                };
+                return this.botTestResult;
+            } finally {
+                this.botTesting = false;
+            }
+        },
+
+        async registerSchoolWebhook() {
+            this.actionLoading = true;
+            this.clearMessages();
+            try {
+                const res = await axios.post('/admin/school/telegram/register-webhook');
+                this.successMessage = 'Telegram webhook successfully registered with Bot API!';
+                await this.fetchSchoolBotSettings();
+                return res.data.data;
+            } catch (err) {
+                this.error = err.response?.data?.error?.message || 'Failed to register webhook with Telegram.';
                 throw err;
             } finally {
                 this.actionLoading = false;

@@ -152,7 +152,7 @@ class ParentManagementController extends Controller
 
         $parent->linkStudent(
             $student,
-            $request->input('relationship', 'guardian'),
+            $request->input('relationship') ?: 'guardian',
             $request->boolean('is_primary_contact')
         );
 

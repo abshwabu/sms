@@ -14,6 +14,7 @@ use App\Models\Section;
 use App\Models\Staff;
 use App\Models\Student;
 use App\Models\User;
+use App\Tenancy\TenantManager;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -198,82 +199,87 @@ class AnnouncementService
      */
     public function dispatchAnnouncement(Announcement $announcement): array
     {
-        $recipients = $this->getRecipientsForAudience($announcement);
-        $channels = $announcement->channels ?: ['in_app', 'email', 'telegram'];
+        return app(TenantManager::class)->runInTenantContext(
+            $announcement->school_id,
+            function () use ($announcement) {
+                $recipients = $this->getRecipientsForAudience($announcement);
+                $channels = $announcement->channels ?: ['in_app', 'email', 'telegram'];
 
-        $inAppCount = 0;
-        $emailCount = 0;
-        $telegramCount = 0;
+                $inAppCount = 0;
+                $emailCount = 0;
+                $telegramCount = 0;
 
-        foreach ($recipients as $recipient) {
-            // 1. In-App Notification Center
-            if (in_array('in_app', $channels)) {
-                $alreadyDispatched = NotificationDispatch::withoutGlobalScopes()
-                    ->where('school_id', $announcement->school_id)
-                    ->where('notifiable_type', Announcement::class)
-                    ->where('notifiable_id', $announcement->id)
-                    ->where('user_id', $recipient->id)
-                    ->where('channel', 'in_app')
-                    ->exists();
+                foreach ($recipients as $recipient) {
+                    // 1. In-App Notification Center
+                    if (in_array('in_app', $channels)) {
+                        $alreadyDispatched = NotificationDispatch::withoutGlobalScopes()
+                            ->where('school_id', $announcement->school_id)
+                            ->where('notifiable_type', Announcement::class)
+                            ->where('notifiable_id', $announcement->id)
+                            ->where('user_id', $recipient->id)
+                            ->where('channel', 'in_app')
+                            ->exists();
 
-                if (! $alreadyDispatched) {
-                    InAppNotification::create([
-                        'school_id' => $announcement->school_id,
-                        'user_id' => $recipient->id,
-                        'type' => 'announcement',
-                        'title' => $announcement->title,
-                        'body' => $announcement->body,
-                        'data' => [
-                            'announcement_id' => $announcement->id,
-                            'priority' => $announcement->priority,
-                            'author' => $announcement->author?->name,
-                        ],
-                    ]);
+                        if (! $alreadyDispatched) {
+                            InAppNotification::create([
+                                'school_id' => $announcement->school_id,
+                                'user_id' => $recipient->id,
+                                'type' => 'announcement',
+                                'title' => $announcement->title,
+                                'body' => $announcement->body,
+                                'data' => [
+                                    'announcement_id' => $announcement->id,
+                                    'priority' => $announcement->priority,
+                                    'author' => $announcement->author?->name,
+                                ],
+                            ]);
 
-                    NotificationDispatch::create([
-                        'school_id' => $announcement->school_id,
-                        'notifiable_type' => Announcement::class,
-                        'notifiable_id' => $announcement->id,
-                        'user_id' => $recipient->id,
-                        'channel' => 'in_app',
-                        'recipient_address' => (string) $recipient->id,
-                        'status' => 'sent',
-                        'sent_at' => Carbon::now(),
-                    ]);
+                            NotificationDispatch::create([
+                                'school_id' => $announcement->school_id,
+                                'notifiable_type' => Announcement::class,
+                                'notifiable_id' => $announcement->id,
+                                'user_id' => $recipient->id,
+                                'channel' => 'in_app',
+                                'recipient_address' => (string) $recipient->id,
+                                'status' => 'sent',
+                                'sent_at' => Carbon::now(),
+                            ]);
 
-                    $inAppCount++;
-                }
-            }
-
-            // 2. Email Dispatch
-            if (in_array('email', $channels) && ! empty($recipient->email)) {
-                // If in testing or sync mode, execute directly or queue
-                if (app()->environment('testing')) {
-                    SendAnnouncementEmailJob::dispatchSync($announcement, $recipient);
-                } else {
-                    SendAnnouncementEmailJob::dispatch($announcement, $recipient);
-                }
-                $emailCount++;
-            }
-
-            // 3. Telegram Dispatch
-            if (in_array('telegram', $channels)) {
-                if ($recipient->telegramAccount && $recipient->telegramAccount->is_linked) {
-                    if (app()->environment('testing')) {
-                        SendAnnouncementTelegramJob::dispatchSync($announcement, $recipient);
-                    } else {
-                        SendAnnouncementTelegramJob::dispatch($announcement, $recipient);
+                            $inAppCount++;
+                        }
                     }
-                    $telegramCount++;
-                }
-            }
-        }
 
-        return [
-            'recipients_count' => $recipients->count(),
-            'in_app_count' => $inAppCount,
-            'email_count' => $emailCount,
-            'telegram_count' => $telegramCount,
-        ];
+                    // 2. Email Dispatch
+                    if (in_array('email', $channels) && ! empty($recipient->email)) {
+                        // If in testing or sync mode, execute directly or queue
+                        if (app()->environment('testing')) {
+                            SendAnnouncementEmailJob::dispatchSync($announcement, $recipient);
+                        } else {
+                            SendAnnouncementEmailJob::dispatch($announcement, $recipient);
+                        }
+                        $emailCount++;
+                    }
+
+                    // 3. Telegram Dispatch
+                    if (in_array('telegram', $channels)) {
+                        if ($recipient->telegramAccount && $recipient->telegramAccount->is_linked) {
+                            if (app()->environment('testing')) {
+                                SendAnnouncementTelegramJob::dispatchSync($announcement, $recipient);
+                            } else {
+                                SendAnnouncementTelegramJob::dispatch($announcement, $recipient);
+                            }
+                            $telegramCount++;
+                        }
+                    }
+                }
+
+                return [
+                    'recipients_count' => $recipients->count(),
+                    'in_app_count' => $inAppCount,
+                    'email_count' => $emailCount,
+                    'telegram_count' => $telegramCount,
+                ];
+            }
+        );
     }
 }

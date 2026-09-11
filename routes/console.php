@@ -230,8 +230,82 @@ Artisan::command('tenants:backup {school_id?}', function () {
 })->purpose('Generate complete tenant backup export in JSON format per school');
 
 /**
+ * Polling Worker for Local Development & Non-Webhook Environments
+ * Fetches updates directly from Telegram Bot API and processes them through handleWebhook().
+ */
+Artisan::command('telegram:poll {--school= : School subdomain or ID to poll} {--once : Run a single polling cycle instead of continuous loop}', function () {
+    $schoolQuery = School::whereNotNull('telegram_bot_token')
+        ->where('telegram_bot_token', '!=', '');
+
+    if ($target = $this->option('school')) {
+        $schoolQuery->where(function ($q) use ($target) {
+            $q->where('id', $target)->orWhere('subdomain', $target);
+        });
+    }
+
+    $schools = $schoolQuery->get();
+
+    if ($schools->isEmpty()) {
+        $this->warn('No schools with configured telegram_bot_token found.');
+        return 0;
+    }
+
+    $this->info("Polling Telegram bots for " . $schools->count() . " school(s)... Press Ctrl+C to stop.");
+    $telegramService = app(\App\Services\TelegramService::class);
+
+    $offsets = [];
+
+    do {
+        foreach ($schools as $school) {
+            $token = $school->telegram_bot_token;
+            if (empty($token) || str_starts_with($token, 'mock_') || str_starts_with($token, 'fake_')) {
+                continue;
+            }
+
+            $offset = $offsets[$school->id] ?? 0;
+            $params = ['timeout' => 5];
+            if ($offset > 0) {
+                $params['offset'] = $offset;
+            }
+
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(25)->get("https://api.telegram.org/bot{$token}/getUpdates", $params);
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $updates = $data['result'] ?? [];
+
+                    foreach ($updates as $update) {
+                        $updateId = $update['update_id'];
+                        $offsets[$school->id] = $updateId + 1;
+
+                        $sender = $update['message']['from']['first_name'] ?? 'User';
+                        $chatId = $update['message']['chat']['id'] ?? 'unknown';
+                        $text = $update['message']['text'] ?? '[non-text]';
+                        $this->line("Received from {$sender} ({$chatId}) for [{$school->name}]: {$text}");
+
+                        $result = $telegramService->handleWebhook($school, $update);
+                        $this->info(" -> Handled with status: " . ($result['status'] ?? 'ok'));
+                    }
+                }
+            } catch (\Exception $e) {
+                $this->warn("Polling error for [{$school->name}]: " . $e->getMessage());
+            }
+        }
+
+        if ($this->option('once')) {
+            break;
+        }
+
+        sleep(1);
+    } while (true);
+
+    return 0;
+})->purpose('Poll Telegram updates for schools with configured bot tokens (ideal for local development)');
+
+/**
  * Console Schedule Definition
  */
 Schedule::command('attendance:remind-daily')->weekdays()->at('09:30');
 Schedule::command('library:check-overdue')->dailyAt('06:00');
 Schedule::command('tenants:backup')->dailyAt('01:00');
+
